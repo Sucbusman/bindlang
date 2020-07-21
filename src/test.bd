@@ -1,0 +1,10 @@
+Person = {age:int} #define a new type
+tellAge = one:Persion -> puts(one.age);
+son = Person(2);
+father = Person(20);
+
+~[son,father];#binding
+father.age = father.age+15; #grow old
+
+tellAge(father); #=>35
+tellAge(son); #=>17
