@@ -1,6 +1,6 @@
 #include <iostream>
 #include <sstream>
-#include "lexer.h"
+#include "scanner.h"
 using namespace bindlang;
 
 int main(){

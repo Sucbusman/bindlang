@@ -1,0 +1,10 @@
+expr ::= define|call|value|func|binary|grouping;
+define ::= id "=" expr;
+id ::= re"[a-zA-Z@_$][a-zA-Z@_$0-9]*";
+call ::=  expr "(" [ expr {","expr} ] ")";
+value ::= number | string | record;
+record ::= "{" [define {"," define}] "}";
+func ::= id":"id "->" expr;
+binary ::= expr operator expr;
+operator ::= "+" | "-" | "*" | "/" | ".";
+grouping ::= "(" expr ")";

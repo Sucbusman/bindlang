@@ -1,6 +1,6 @@
 Sources=$(shell ls src/*.cpp)
 Objects=$(subst src/,obj/,$(subst .cpp,.o ,$(Sources)))
-CCFLAG=-Wall -O2 -march=native 
+CCFLAG=-std=c++2a -Wall -O2 -march=native 
 CC=g++
 main: $(Objects)
 	$(CC) $(Objects) -o $@

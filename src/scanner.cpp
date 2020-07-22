@@ -1,39 +1,8 @@
-#include <iostream>
-#include <iomanip>
 #include <functional>
-#include "lexer.h"
-
+#include "scanner.h"
 
 using namespace bindlang;
 namespace bindlang{
-  const char oneCharTokens[]=
-    {
-     '(',')','#','{','}',':','+','*','/','|',';'
-    };
-
-  const char *toktype_str_list[] = {
-    "tok_eof"  , 
-    "tok_id"   , 
-    "tok_num"  , 
-    "tok_str"  , 
-    "tok_err"  , 
-    "tok_arrow", 
-    "tok_equal"                          
-  };
-
-  std::ostream & operator<<(std::ostream &out, const Token &tok)
-  {
-    out<<BLUE("<Token")<<" type:";
-    if(tok.type<0){
-      out<<std::setw(9)<<std::left<<toktype_str_list[(tok.type*-1)-1];
-    }else{
-      out<<std::setw(9)<<std::left<<(char)tok.type;
-    }
-    out<<" literal:"<<std::setw(9)<<std::left<<tok.literal<<" line:"<<tok.line
-       <<BLUE(" >");
-    return out;
-  }
-
   bool includes(const char& c,const char* list,
                         int len){
     for(int i=0;i<len;i++){
@@ -152,7 +121,7 @@ void Scanner::skipWhitespace(){
       nextChar();
       break;
     case '#':
-      skipUntil([this](char ch){return ch=='\n';});
+      skipUntil([](char ch){return ch=='\n';});
       break;
     default:
       return;
@@ -195,7 +164,7 @@ Token Scanner::nextToken(){
 }
 
 Token Scanner::tokNumber(){
-  auto notdigit = [this](char ch)mutable{
+  auto notdigit = [](char ch)mutable{
               return not isdigit(ch);
              };
   skipUntilNext(notdigit);
