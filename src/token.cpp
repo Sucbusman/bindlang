@@ -2,6 +2,19 @@
 #include <iomanip>
 #include "token.h"
 #include "utils.h"
+namespace bindlang{
+
+const char *toktype_str_list[] = {
+  "tok_eof"  , 
+  "tok_id"   , 
+  "tok_num"  , 
+  "tok_str"  , 
+  "tok_err"  , 
+  "tok_arrow", 
+  "tok_equal",
+  "tok_newline"
+};
+
 std::ostream & operator<<(std::ostream &out, const Token &tok)
 {
     out<<BLUE("<Token")<<" type:";
@@ -14,3 +27,9 @@ std::ostream & operator<<(std::ostream &out, const Token &tok)
        <<BLUE(" >");
     return out;
 }
+
+void Token::show(){
+  cout<<*this;
+}
+
+}//namespace

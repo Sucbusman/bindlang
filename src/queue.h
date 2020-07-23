@@ -6,7 +6,7 @@ namespace law{
   template <class T>
   class fix_queue{
   public:
-    fix_queue(int capacity):capacity(capacity),start(0),end(0),number(0){
+    fix_queue(int capacity=3):capacity(capacity),start(0),end(0),number(0){
       memory = (T*)malloc(capacity*sizeof(T));
     }
     ~fix_queue(){

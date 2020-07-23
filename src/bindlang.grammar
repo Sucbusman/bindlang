@@ -1,10 +1,13 @@
-expr ::= define|call|value|func|binary|grouping;
+expr ::= define|call|atom|func|id             #|binary|grouping;
 define ::= id "=" expr;
-id ::= re"[a-zA-Z@_$][a-zA-Z@_$0-9]*";
-call ::=  expr "(" [ expr {","expr} ] ")";
-value ::= number | string | record;
-record ::= "{" [define {"," define}] "}";
-func ::= id":"id "->" expr;
+id   ::= re"[a-zA-Z@_$][a-zA-Z@_$0-9]*";
+call ::=  id "(" [ expr {","expr} ] ")";
+atom ::= number | string                      #| record;
+func ::= "\" [ id {","" id }" ] ->" expr;
+
+###########no implement#########
+
+record ::= "{" [define {"," define} ] "}";
 binary ::= expr operator expr;
 operator ::= "+" | "-" | "*" | "/" | ".";
 grouping ::= "(" expr ")";

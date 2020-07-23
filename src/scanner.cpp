@@ -1,26 +1,35 @@
 #include <functional>
 #include "scanner.h"
 
-using namespace bindlang;
 namespace bindlang{
-  bool includes(const char& c,const char* list,
-                        int len){
-    for(int i=0;i<len;i++){
-      if(c == list[i]){
-        return true;
-      }
+
+const char oneCharTokens[]=
+{
+  '(',')',
+  '{','}',
+  '[',']',
+  ':',';','.',',',
+  '+','*','/','|',
+  '\\'
+};
+
+bool includes(const char& c,const char* list,
+                      int len){
+  for(int i=0;i<len;i++){
+    if(c == list[i]){
+      return true;
     }
-    return false;
   }
+  return false;
+}
 
-  inline bool isalpha(const char& c){
-    return ('A'<=c and c<='Z') or
-      ('a'<=c and c<='z');
-  }
+inline bool isalpha(const char& c){
+  return ('A'<=c and c<='Z') or
+    ('a'<=c and c<='z');
+}
 
-  inline bool isdigit(const char& c){
-    return '0'<=c and c<='9';
-  }
+inline bool isdigit(const char& c){
+  return '0'<=c and c<='9';
 }
 
 void Scanner::reset(){
@@ -115,11 +124,7 @@ void Scanner::skipWhitespace(){
       cache.clear();
       nextChar();
       break;
-    case '\n':  
-      line_num++;
-      cache.clear();
-      nextChar();
-      break;
+
     case '#':
       skipUntil([](char ch){return ch=='\n';});
       break;
@@ -130,6 +135,8 @@ void Scanner::skipWhitespace(){
 }
 
 Token Scanner::nextToken(){
+  /* If we next char at start, make sure it point
+     to the last char in a whole token when returned */
   nextChar();
   skipWhitespace();
   if(atEnd()) return makeToken(tok_eof);
@@ -142,7 +149,8 @@ Token Scanner::nextToken(){
   if(isIdStart(char_)) return tokIdentify();
 
   switch (char_) {
-    case '"': return tokString();
+    case '\n': return tokNewline();
+    case '"':  return tokString();
     case '-': {
       char ch = borrow();
       if (ch == '>') {
@@ -161,6 +169,11 @@ Token Scanner::nextToken(){
     }
   }
   return makeToken(tok_err);
+}
+
+Token Scanner::tokNewline(){
+  line_num++;
+  return makeToken(tok_newline);
 }
 
 Token Scanner::tokNumber(){
@@ -202,3 +215,5 @@ Token Scanner::tokIdentify(){
             });
   return makeToken(tok_id);
 }
+
+}//namespace

@@ -1,7 +1,10 @@
+#!/bin/ruby
 Exprs = {
+  Atom:   ["Token literal"],
+  Id:     ["Token id"],
   Define: ["Token id","ExprPtr expr"],
-  Call:   ["Token id","ExprPtr expr"],
-  Func:   ["Token id","ExprPtrList args"]
+  Func:   ["TokenList params","ExprPtr body"],
+  Call:   ["Token id","ExprPtrList args"]
 }
 
 def expr_type
@@ -19,35 +22,40 @@ Prelude= <<EOF
 #include <memory>
 #include <vector>
 #include <string>
+#include <iomanip>
 
 #include "token.h"
 #include "value.h"
+#include "utils.h"
 namespace bindlang{
-
-struct Expr;//declared ahead
-struct Visitor{
-  virtual Value visit(Expr& expr)=0;
-};
 
 #{expr_type}
 
 struct Expr {
   int type=-1;
   ~Expr() = default;
-  Value accept(Visitor & v);
+  virtual void show()=0;
   Expr(int type):type(type){};
 };
 
 using ExprPtr = std::unique_ptr<Expr>;
 using ExprPtrList = std::vector<ExprPtr>;
-using IdList = std::vector<std::string>;
-EOF
+using TokenList = std::vector<Token>;
 
+struct ExprEof : Expr{
+  ExprEof():Expr(-2){}
+  void show(){
+    std::cout<<"<Expr EOF >"<<std::endl;
+  }
+};
+EOF
 
 def init_list members
   members.map do |member|
     type,id = member.split(' ')
-    if type == 'ExprPtr'
+    if type == 'ExprPtr' or
+       type == 'ExprPtrList' or
+       type == 'TokenList'
       id+"(std::move(#{id}))"
     else
       id+'('+id+')'
@@ -55,12 +63,38 @@ def init_list members
   end.join(',')
 end
 
+def connector type
+  if type.include? 'Ptr'
+    '->'
+  else
+    '.'
+  end
+end
+
 def gen name,members
+  ids = members.map {|s|s.split(' ')[-1]}
 ans= <<EOF
 struct Expr#{name} : Expr{
   #{members.map{|s| s+=";\n  "}.join }
-  Expr#{name}(#{members.join(',')}):
-    Expr(#{name.upcase}),#{init_list members}{};
+  Expr#{name}(#{members.join(',')})
+    : Expr(#{name.upcase}),#{init_list members}{}
+  void show(){
+    std::cout<<BLUE("<Expr ")<<"#{name} "<<std::endl;
+    #{members.map do |member|
+        type,id = member.split(' ')
+        'std::cout<<std::setw(10)<<std::left<<"  '+type+':"<<std::endl;'+
+                                                     "\n    "+
+        if type.end_with? 'List'
+          "for(auto &i:#{id}){\n    "+
+          '  std::cout<<std::setw(14)<<" ";'+
+          "i#{connector(type)}show();std::cout<<endl;\n    }"
+        else
+          "cout<<std::setw(14)<<' ';"+id+connector(type)+"show();std::cout<<endl;"
+        end
+      end.join("\n    ")
+     }
+    std::cout<<BLUE(" >")<<std::endl;
+  }
 };
 EOF
 end

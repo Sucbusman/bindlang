@@ -13,11 +13,9 @@ class Scanner{
   Scanner(std::istream &in):in(in),
      cache(std::string()),
      /* we borrow at most 10 chars from future */
-     future(law::fix_queue<char>(10))
-  {
-    reset();
-  }
+     future(law::fix_queue<char>(10)){}
   void  reset();
+  Token tokNewline();
   Token tokIdentify();
   Token tokNumber();
   Token tokString();
