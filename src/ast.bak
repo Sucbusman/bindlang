@@ -49,7 +49,7 @@ struct ExprAtom : Expr{
 
   ExprPtr clone() override;
 
-  void show() override {
+  void show(){
     std::cout<<BLUE("<Expr ")<<"Atom "<<std::endl;
     std::cout<<std::setw(10)<<std::left<<"  literal:"<<std::endl;
     cout<<std::setw(14)<<' ';literal.show();std::cout<<endl;
@@ -65,7 +65,7 @@ struct ExprId : Expr{
 
   ExprPtr clone() override;
 
-  void show() override {
+  void show(){
     std::cout<<BLUE("<Expr ")<<"Id "<<std::endl;
     std::cout<<std::setw(10)<<std::left<<"  id:"<<std::endl;
     cout<<std::setw(14)<<' ';id.show();std::cout<<endl;
@@ -82,7 +82,7 @@ struct ExprDefine : Expr{
 
   ExprPtr clone() override;
 
-  void show() override {
+  void show(){
     std::cout<<BLUE("<Expr ")<<"Define "<<std::endl;
     std::cout<<std::setw(10)<<std::left<<"  id:"<<std::endl;
     cout<<std::setw(14)<<' ';id.show();std::cout<<endl;
@@ -101,7 +101,7 @@ struct ExprFunc : Expr{
 
   ExprPtr clone() override;
 
-  void show() override {
+  void show(){
     std::cout<<BLUE("<Expr ")<<"Func "<<std::endl;
     std::cout<<std::setw(10)<<std::left<<"  params:"<<std::endl;
     for(auto &i:params){
@@ -123,7 +123,7 @@ struct ExprCall : Expr{
 
   ExprPtr clone() override;
 
-  void show() override {
+  void show(){
     std::cout<<BLUE("<Expr ")<<"Call "<<std::endl;
     std::cout<<std::setw(10)<<std::left<<"  callee:"<<std::endl;
     cout<<std::setw(14)<<' ';callee->show();std::cout<<endl;

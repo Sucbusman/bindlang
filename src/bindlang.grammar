@@ -1,9 +1,12 @@
-expr ::= define|call|atom|func|id             #|binary|grouping;
+
+blank  ::= re"\s";
+id     ::= re"[a-zA-Z@_$][a-zA-Z@_$0-9]*";
+
+expr   ::= define|call|atom|func|id;             #|binary|grouping;
 define ::= id "=" expr;
-id   ::= re"[a-zA-Z@_$][a-zA-Z@_$0-9]*";
-call ::=  id "(" [ expr {","expr} ] ")";
-atom ::= number | string                      #| record;
-func ::= "\" [ id {","" id }" ] ->" expr;
+call   ::= expr "(" [ expr {blank expr} ] ")";
+atom   ::= number | string;                     #| record;
+func   ::= "\" [ id {blank id }" ] "->" expr;
 
 ###########no implement#########
 

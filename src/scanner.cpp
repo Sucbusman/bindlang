@@ -9,8 +9,7 @@ const char oneCharTokens[]=
   '{','}',
   '[',']',
   ':',';','.',',',
-  '+','*','/','|',
-  '\\'
+  '|','\\'
 };
 
 bool includes(const char& c,const char* list,
@@ -32,10 +31,24 @@ inline bool isdigit(const char& c){
   return '0'<=c and c<='9';
 }
 
+inline bool isop(const char& c){
+  switch(c){
+    case '+':
+    case '-':
+    case '*':
+    case '/':
+    case '#':
+    case '%':
+      return true;
+    default:
+      return false;
+  }
+}
+
 void Scanner::reset(){
   // cancling compative with stdio to speed up c++ io
-  std::ios::sync_with_stdio(false);
-  std::cin.tie(0);
+  //std::ios::sync_with_stdio(false);
+  //std::cin.tie(0);
   line_num  = 1;
   char_     = ' ';
   cache     = std::string();
@@ -74,6 +87,14 @@ char Scanner::borrow(){
   return c;
 }
 
+char Scanner::peekNext(){
+  if(future.empty()){
+    return borrow();
+  }else{
+    return future.front();
+  }
+}
+
 bool Scanner::error(const char *message){
   std::cerr<<"[Scanner Error] At line "<<line_num
            <<message<<" with cache "<<cache
@@ -100,7 +121,7 @@ bool Scanner::skipUntil(std::function<bool(char)> cond){
       return true;
     }
     nextChar();
-  } 
+  }
   return false;
 }
 
@@ -124,7 +145,6 @@ void Scanner::skipWhitespace(){
       cache.clear();
       nextChar();
       break;
-
     case '#':
       skipUntil([](char ch){return ch=='\n';});
       break;
@@ -146,21 +166,20 @@ Token Scanner::nextToken(){
               sizeof(oneCharTokens)))
       return makeToken(char_);
   if(isdigit(char_)) return tokNumber();
-  if(isIdStart(char_)) return tokIdentify();
 
   switch (char_) {
     case '\n': return tokNewline();
     case '"':  return tokString();
     case '-': {
-      char ch = borrow();
+      char ch = peekNext();
       if (ch == '>') {
         nextChar();
         return makeToken(tok_arrow);
       } else
-        return makeToken('-');
+        return makeToken(tok_id);
     }
     case '=': {
-      char ch = borrow();
+      char ch = peekNext();
       if (ch == '=') {
         nextChar();
         return makeToken(tok_equal);
@@ -168,6 +187,8 @@ Token Scanner::nextToken(){
         return makeToken('=');
     }
   }
+
+  if(isIdStart(char_)) return tokIdentify();
   return makeToken(tok_err);
 }
 
@@ -189,30 +210,41 @@ Token Scanner::tokNumber(){
 }
 
 Token Scanner::tokString(){
+  cache.clear();//eat '"'
   skipUntil([this](char ch)mutable{
               if(ch=='\n') line_num++;
               return ch=='"'; 
             })
     or error("expect closing right quote");
+  cache.pop_back();//pop closing '"'
   return makeToken(tok_str);
 }
 
 bool Scanner::isIdStart(char ch){
-  if(isalpha(ch) or
-     char_ == '@'   or
-     char_ == '_'   or
-     char_ == '$')
+  if(isalpha(ch) or isop(ch))
     return true;
   else
     return false;
 }
 
 Token Scanner::tokIdentify(){
-  skipUntilNext([this](char ch){
-              return not (isIdStart(ch) or
-                ch == '?'     or
-                isdigit(ch));
-            });
+  while(not in.eof()){
+    char ch = borrow();
+    if(ch == '-'){
+      char ch2 = borrow();
+      if(ch2 == '>'){
+        return makeToken(tok_id);
+      }else{
+        nextChar();
+      }
+    }
+    else if(not (ch=='?' or
+                 ch=='!' or
+                 isIdStart(ch) or
+                 isdigit(ch))) break;
+    else
+      nextChar();
+  }
   return makeToken(tok_id);
 }
 

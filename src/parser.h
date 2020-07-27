@@ -17,13 +17,17 @@ class Parser {
   void reset(); // namespace bindlang
   ExprPtr parseNext();
   bool    atEnd();
-  
+  bool    hasError();
+  bool    fine();
+
  private:
   Scanner& scanner;
-  void    error(const char *message);
+  int     error_num;
+  bool    error(const char *message);
   void    next();
   Token   borrow();
-
+  Token   peekNext();
+  
   bool    verifyId(Token const& tok);
   bool    verifyId();
 
@@ -32,10 +36,9 @@ class Parser {
   ExprPtr parseId();
   ExprPtr parseDefine();
   ExprPtr parseFunc();
-  ExprPtr parseCall();
+  ExprPtr parseCall(ExprPtr callee=nullptr);
   
   Token token_;
-  std::stack<Token>     cache;
   law::fix_queue<Token> future;
 };
 

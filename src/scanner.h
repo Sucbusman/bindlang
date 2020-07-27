@@ -27,6 +27,7 @@ class Scanner{
   bool error(const char *message);
   void nextChar();
   char borrow();
+  char peekNext();
   bool skipUntil(std::function<bool(char)>);
   bool skipUntilNext(std::function<bool(char)>);
   void skipWhitespace();

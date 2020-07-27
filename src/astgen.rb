@@ -4,7 +4,7 @@ Exprs = {
   Id:     ["Token id"],
   Define: ["Token id","ExprPtr expr"],
   Func:   ["TokenList params","ExprPtr body"],
-  Call:   ["Token id","ExprPtrList args"]
+  Call:   ["ExprPtr callee","ExprPtrList args","ExprPtrList extra"]
 }
 
 def expr_type
@@ -25,27 +25,30 @@ Prelude= <<EOF
 #include <iomanip>
 
 #include "token.h"
-#include "value.h"
 #include "utils.h"
+#include "type.h"
+
 namespace bindlang{
 
 #{expr_type}
 
 struct Expr {
-  int type=-1;
+  int type=-2;
   ~Expr() = default;
-  virtual void show()=0;
+  virtual void    show() =0;
+  virtual ExprPtr clone()=0;
   Expr(int type):type(type){};
 };
 
-using ExprPtr = std::unique_ptr<Expr>;
-using ExprPtrList = std::vector<ExprPtr>;
 using TokenList = std::vector<Token>;
 
 struct ExprEof : Expr{
-  ExprEof():Expr(-2){}
+  ExprEof():Expr(-1){}
   void show(){
     std::cout<<"<Expr EOF >"<<std::endl;
+  }
+  ExprPtr clone(){
+    return std::make_unique<ExprEof>(); 
   }
 };
 EOF
@@ -78,11 +81,14 @@ struct Expr#{name} : Expr{
   #{members.map{|s| s+=";\n  "}.join }
   Expr#{name}(#{members.join(',')})
     : Expr(#{name.upcase}),#{init_list members}{}
-  void show(){
+
+  ExprPtr clone() override;
+
+  void show() override {
     std::cout<<BLUE("<Expr ")<<"#{name} "<<std::endl;
     #{members.map do |member|
         type,id = member.split(' ')
-        'std::cout<<std::setw(10)<<std::left<<"  '+type+':"<<std::endl;'+
+        'std::cout<<std::setw(10)<<std::left<<"  '+id+':"<<std::endl;'+
                                                      "\n    "+
         if type.end_with? 'List'
           "for(auto &i:#{id}){\n    "+

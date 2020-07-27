@@ -8,12 +8,22 @@ void Parser::reset(){
   scanner.reset();
   token_ = Token(0,' ',std::string());
   future = law::fix_queue<Token>(5);
-  cache = std::stack<Token>();
+  error_num = 0;
 }
 
-void Parser::error(const char *message){
+bool Parser::error(const char *message){
   std::cerr<<RED("[Parsing error] ")<<message
            <<" with token:"<<token_<<std::endl;
+  error_num++;
+  return false;
+}
+
+bool Parser::hasError(){
+  return error_num > 0;
+}
+
+bool Parser::fine(){
+  return not hasError();
 }
 
 bool Parser::atEnd(){
@@ -34,24 +44,33 @@ Token Parser::borrow(){
   return tok;
 }
 
+Token Parser::peekNext(){
+  if(future.empty()){
+    return borrow();
+  }else{
+    return future.front();
+  }
+}
+
 ExprPtr Parser::parseExpr(){
   /* If we next token at start,make sure point to
      the last token in a whole expression when returned */
+  if(hasError()) return nullptr;
   next(); 
+  while(token_.type == tok_newline) next();
   if(token_.type == tok_eof)
     return make_unique<ExprEof>();
   if(token_.type == tok_err){
     error("error token in expression.");
-    exit(1);
+    return nullptr;
   }
-  while(token_.type == tok_newline) next();
   switch(token_.type){
     case '\\':    return parseFunc();
     case tok_str:
     case tok_num: return parseAtom();
     case tok_id:{
       //next();// tok_id since it is cached
-      Token tok = borrow();
+      Token tok = peekNext();
       switch(tok.type){
         case '=':           return parseDefine();
         case '(':           return parseCall();
@@ -61,7 +80,7 @@ ExprPtr Parser::parseExpr(){
     }
   }
   error("Wrong token in expression.");
-  exit(1);
+  return  nullptr;
 }
 
 ExprPtr Parser::parseNext(){
@@ -90,21 +109,26 @@ ExprPtr Parser::parseFunc(){
     body = parseExpr();
     return make_unique<ExprFunc>(params,move(body));
   }
+  verifyId();
   while(not atEnd()){
-    verifyId(); params.push_back(token_);
+    params.push_back(token_);
     next();
-    if(token_.type == ','){
-      next();
+    if(token_.type == tok_id){
+      continue;
     }else if(token_.type == tok_arrow){
       body = parseExpr();
-      return make_unique<ExprFunc>(params,move(body));
+      auto func = make_unique<ExprFunc>(params,move(body)); 
+      if(peekNext().type == '('){
+        return parseCall(move(func));
+      }
+      return func;
     }else{
-      error("Expect ',' or '->' in procedure define");
-      exit(1);
+      error("Expect '->' in procedure define");
+      return nullptr;
     }
   }
   error("Expect '->' procedure body in procedure define");
-  exit(1);
+  return nullptr;
 }
 
 ExprPtr Parser::parseAtom(){
@@ -120,28 +144,54 @@ ExprPtr Parser::parseDefine(){
   return make_unique<ExprDefine>(id,move(expr));
 }
 
-ExprPtr Parser::parseCall(){
-  Token id = token_;
-  //eg. someproc(x,y)
+ExprPtr Parser::parseCall(ExprPtr callee){
+  if(not callee){
+    callee = make_unique<ExprId>(token_);
+  }
+  //eg. someproc(x y | z=expr)
   //           ^
   next();//     ^
   ExprPtrList args;
-  Token tok = borrow();
+  ExprPtrList extra;
+  Token tok = peekNext();
+  bool delim = false;
   if(tok.type == ')') goto FINAL;
+  if(tok.type == '|') goto MIDDLE;
   while(true){
-    args.push_back(parseExpr());
-    next();
-    if(token_.type == ','){
-      continue;
-    }if(token_.type == ')'){
-      break;
+    if(delim){
+      extra.push_back(parseExpr());
     }else{
-      error("Expect ',' or ')' in call args.");
+      args.push_back(parseExpr());
+    }
+    tok = peekNext();
+  MIDDLE:
+    if(tok.type == tok_id or
+       tok.type == tok_num or
+       tok.type == tok_str){
+      continue;
+    }else if(tok.type == ')'){
+      break;
+    }else if(tok.type == '|'){
+      if(delim){
+        error("Duplicate '|' operator ");
+        return nullptr;
+      }else{
+        delim = true;
+        next();//eat '|'
+      }
+    }else{
+      error("Expect identification or ')' in procedure call ");
+      return nullptr;
     }
   }
  FINAL:
-  next();//go to ')'
-  return make_unique<ExprCall>(id,move(args)); 
+  next();//eat ')'
+  auto call = make_unique<ExprCall>(move(callee),
+                                    move(args),move(extra));
+  if(peekNext().type == '('){
+    return parseCall(move(call));
+  }
+  return call; 
 }
 
 ExprPtr Parser::parseId(){
