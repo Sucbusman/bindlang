@@ -4,7 +4,7 @@ neg = \x-> -(0 x)
 
 begin(print(inc(2)) " " double(3) " " neg(6))
 
-print( >(inc double neg)(2) )#combination
+print( >(inc double neg)(2) )#compose
 
 f = <(inc double neg) #reverse
 print(f(2))
