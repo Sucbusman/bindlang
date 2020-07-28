@@ -1,0 +1,10 @@
+inc = \x->+(x 1)
+double = \x -> *(2 x)
+neg = \x-> -(0 x)
+
+begin(print(inc(2)) " " double(3) " " neg(6))
+
+print( >(inc double neg)(2) )#combination
+
+f = <(inc double neg) #reverse
+print(f(2))

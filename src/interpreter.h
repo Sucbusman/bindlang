@@ -36,6 +36,7 @@ class Interpreter{
   ValPtr Eq(ExprPtrList args);
   ValPtr Print(ExprPtrList args);
   ValPtr While(ExprPtrList args);
+  ValPtr Pipe(ExprPtrList args,bool);
   ValPtr InspectEnv(ExprPtrList args);
   ValPtr Debug(ExprPtrList args);
 };

@@ -30,8 +30,11 @@ void addBinary(EnvPtr env,const char *name,Object obj,
 
 void Interpreter::standardEnvironment(){
   toplevel = make_shared<Environment>();
+
 #define PRIM(name,arity,func) \
   addPrimitive(toplevel,name,arity,&Interpreter::func,this)
+#define PRIM2(name,arity,func,...) \
+  addPrimitive(toplevel,name,arity,&Interpreter::func,this,__VA_ARGS__)
 #define BINARY(name,func) \
   addBinary(toplevel,name,this,&Interpreter::binary,func)
   using namespace std::placeholders;
@@ -50,6 +53,8 @@ void Interpreter::standardEnvironment(){
   PRIM("begin",inifinity,Begin);
   PRIM("env",0,InspectEnv);
   PRIM("debug",0,Debug);
+  PRIM2(">",1,Pipe,true);
+  PRIM2("<",1,Pipe,false);
   calc("+",inifinity,0,[](double x,double y){return x+y;});
   calc("-",inifinity,0,[](double x,double y){return x-y;});
   calc("*",inifinity,1,[](double x,double y){return x*y;});
@@ -179,7 +184,7 @@ ValPtr Interpreter::evalCall(ExprPtr expr){
     auto arity = proc->params.size();
     auto left_arity = arity - args.size();
     if(args.size() > arity){
-      call_error(" Expect at most"<<arity<<" args.");
+      call_error(" Expect at most "<<arity<<" args.");
     }
     for(unsigned long i=0;i<args.size();i++){
       new_env->set((proc->params)[i].literal,
@@ -294,6 +299,17 @@ bool truthy(ValPtr val){
   return true;
 }
 
+ValPtr Interpreter::Begin(ExprPtrList args){
+  ValPtr ans;
+  auto new_env = make_shared<Environment>(envs.top());
+  envs.push(new_env);
+  for(const auto &arg :args){
+    ans = eval(arg->clone());
+  }
+  envs.pop();
+  return ans;
+}
+
 ValPtr Interpreter::If(ExprPtrList args){
   auto c = eval(args[0]->clone());
   if(truthy(c)){
@@ -307,15 +323,54 @@ ValPtr Interpreter::If(ExprPtrList args){
   }
 }
 
-ValPtr Interpreter::Begin(ExprPtrList args){
-  ValPtr ans;
-  auto new_env = make_shared<Environment>(envs.top());
-  envs.push(new_env);
-  for(const auto &arg :args){
-    ans = eval(arg->clone());
+
+ValPtr Interpreter::Pipe(ExprPtrList args,bool left_to_right){
+  if(args.size()<1){
+   error("Expect at least one procedure.");
+   return nullptr;
   }
-  envs.pop();
-  return ans;
+  auto tok = Token(1, tok_id, "#pipe-arg");
+  auto params = TokenList();
+  params.push_back(tok);
+  auto pipearg = make_unique<ExprId>(tok);
+  // auto extra = ExprPtrList();
+  ExprPtr lastcallee = nullptr;
+  //for(auto it=args.begin();it!=args.end();it++){
+  auto it1 = args.begin();
+  auto it2 = args.rbegin();
+  ExprPtr callee;
+  while(true){
+    // check termination
+    if(left_to_right){
+      if(it1 == args.end())  break;
+    }else{
+      if(it2 == args.rend()) break;
+    }
+    // load callee
+    if(left_to_right){
+      callee = (*it1)->clone();
+    }else{
+      callee = (*it2)->clone();
+    }
+    auto lst = ExprPtrList();
+    if(not lastcallee){
+      lst.push_back(move(pipearg));
+      lastcallee = move(make_unique<ExprCall>(move(callee),
+                                              move(lst),ExprPtrList()));
+    }else{
+      lst.push_back(move(lastcallee));
+      lastcallee = move(make_unique<ExprCall>(move(callee),
+                                              move(lst),ExprPtrList()));
+    }
+    // iteration
+    if(left_to_right){
+      it1++;
+    }else{
+      it2++;
+    }
+  }
+  auto func = make_unique<ExprFunc>(params,move(lastcallee));
+  return eval(move(func));
 }
 
 ValPtr Interpreter::InspectEnv(ExprPtrList args){

@@ -2,3 +2,4 @@ obj/*
 main
 *.log
 src/.ccls-cache/
+*#
