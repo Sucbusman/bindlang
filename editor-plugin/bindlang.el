@@ -38,18 +38,23 @@
     st)
   "Sysntax table for bindlang-mode")
 
-(defun bindlang-mode ()
-  "Major mode for eding bindlng"
-  (interactive)
-  (kill-all-local-variables)
-  (set-syntax-table bindlang-mode-syntax-table)
-  (use-local-map bindlang-mode-map)
-  (set (make-local-variable 'font-lock-defaults)
-       '(bindlang-highlights))
-  (set (make-local-variable 'indent-line-function)
-       'bindlang-indent-line)
-  (setq major-mode 'bindlang-mode)
-  (setq mode-name "bindlang-mode")
-  (run-hooks 'bindlang-mode-hook))
+(define-derived-mode bindlang-mode fundamental-mode "bindlang"
+  "Major mode for bindlang language files."
+  (set (make-local-variable 'font-lock-defaults) '(bindlang-highlights))
+  (set (make-local-variable 'indent-line-function) 'bindlang-indent-line))
+
+;; (defun bindlang-mode ()
+;;   "Major mode for eding bindlng"
+;;   (interactive)
+;;   (kill-all-local-variables)
+;;   (set-syntax-table bindlang-mode-syntax-table)
+;;   (use-local-map bindlang-mode-map)
+;;   (set (make-local-variable 'font-lock-defaults)
+;;        '(bindlang-highlights))
+;;   (set (make-local-variable 'indent-line-function)
+;;        'bindlang-indent-line)
+;;   (setq major-mode 'bindlang-mode)
+;;   (setq mode-name "bindlang-mode")
+;;   (run-hooks 'bindlang-mode-hook))
 
 (provide 'bindlang-mode)
