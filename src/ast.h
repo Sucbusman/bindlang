@@ -17,7 +17,9 @@ typedef enum{
   ID,
   DEFINE,
   FUNC,
-  CALL
+  CALL,
+  TUPLE,
+  QUOTE
 } expr_type;
 
 
@@ -133,6 +135,42 @@ struct ExprCall : Expr{
     }
     std::cout<<std::setw(10)<<std::left<<"  extra:"<<std::endl;
     for(auto &i:extra){
+      std::cout<<std::setw(14)<<" ";i->show();std::cout<<endl;
+    }
+    std::cout<<BLUE(" >")<<std::endl;
+  }
+};
+
+struct ExprTuple : Expr{
+  ExprPtrList container;
+  
+  ExprTuple(ExprPtrList container)
+    : Expr(TUPLE),container(std::move(container)){}
+
+  ExprPtr clone() override;
+
+  void show() override {
+    std::cout<<BLUE("<Expr ")<<"Tuple "<<std::endl;
+    std::cout<<std::setw(10)<<std::left<<"  container:"<<std::endl;
+    for(auto &i:container){
+      std::cout<<std::setw(14)<<" ";i->show();std::cout<<endl;
+    }
+    std::cout<<BLUE(" >")<<std::endl;
+  }
+};
+
+struct ExprQuote : Expr{
+  ExprPtrList container;
+  
+  ExprQuote(ExprPtrList container)
+    : Expr(QUOTE),container(std::move(container)){}
+
+  ExprPtr clone() override;
+
+  void show() override {
+    std::cout<<BLUE("<Expr ")<<"Quote "<<std::endl;
+    std::cout<<std::setw(10)<<std::left<<"  container:"<<std::endl;
+    for(auto &i:container){
       std::cout<<std::setw(14)<<" ";i->show();std::cout<<endl;
     }
     std::cout<<BLUE(" >")<<std::endl;

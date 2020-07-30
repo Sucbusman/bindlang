@@ -1,0 +1,7 @@
+Student = \n a-> <n a>
+mike = Student("mike" 18)
+john = Student("john" 20)
+sayHi = \s -> print("I am " take(s 0) ",my age is " take(s 1))
+
+sayHi(mike)
+sayHi(john)

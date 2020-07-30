@@ -6,6 +6,14 @@ ExprPtr ExprAtom::clone(){
   return std::make_unique<ExprAtom>(literal);
 }
 
+ExprPtr ExprTuple::clone(){
+  ExprPtrList newcontainer;
+  for(auto const& i:container){
+    newcontainer.push_back(i->clone());
+  }
+  return std::make_unique<ExprTuple>(move(newcontainer));
+}
+
 ExprPtr ExprId::clone(){
   return std::make_unique<ExprId>(id);
 }

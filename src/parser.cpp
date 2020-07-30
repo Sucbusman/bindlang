@@ -68,6 +68,8 @@ ExprPtr Parser::parseExpr(){
     case '\\':    return parseFunc();
     case tok_str:
     case tok_num: return parseAtom();
+    case '<':     return parseTuple();
+    case '[':     return parseList();
     case tok_id:{
       //next();// tok_id since it is cached
       Token tok = peekNext();
@@ -132,7 +134,42 @@ ExprPtr Parser::parseFunc(){
 }
 
 ExprPtr Parser::parseAtom(){
-  return make_unique<ExprAtom>(token_);
+  switch(token_.type){
+    case tok_str:
+    case tok_num: return make_unique<ExprAtom>(token_);
+    case '<':
+      return parseTuple();
+    case '[':
+      return parseList();
+  }
+  error("Expect atoms.");
+  return nullptr;
+}
+
+ExprPtr Parser::parseTuple(){
+  //eg.   < 1 2 3 expr...>
+  //      ^
+  ExprPtrList container;
+  Token tok;
+  while(tok = peekNext(),tok.type != '>'){
+    if(tok.type == tok_eof){
+      error("Expect closing ')'");
+      return nullptr;
+    }
+    container.push_back(parseExpr());
+  }
+  next();//go to closing '>'
+  return make_unique<ExprTuple>(move(container));
+}
+
+ExprPtr Parser::parseList(){
+  //eg.   [ 1 2 3 expr...]
+  //      ^
+  // ExprPtrBtree btree;
+  while(token_.type != ']'){
+    //parse();
+  }
+  return nullptr;
 }
 
 ExprPtr Parser::parseDefine(){
@@ -165,9 +202,11 @@ ExprPtr Parser::parseCall(ExprPtr callee){
     }
     tok = peekNext();
   MIDDLE:
+    //some token can appear first
     if(tok.type == tok_id or
        tok.type == tok_num or
-       tok.type == tok_str){
+       tok.type == tok_str or
+       tok.type == '<'){
       continue;
     }else if(tok.type == ')'){
       break;
@@ -180,7 +219,7 @@ ExprPtr Parser::parseCall(ExprPtr callee){
         next();//eat '|'
       }
     }else{
-      error("Expect identification or ')' in procedure call ");
+      error("Expect sub expression or ')' in procedure call ");
       return nullptr;
     }
   }

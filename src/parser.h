@@ -33,11 +33,13 @@ class Parser {
 
   ExprPtr parseExpr();
   ExprPtr parseAtom();
+  ExprPtr parseList();
+  ExprPtr parseTuple();
   ExprPtr parseId();
   ExprPtr parseDefine();
   ExprPtr parseFunc();
   ExprPtr parseCall(ExprPtr callee=nullptr);
-  
+
   Token token_;
   law::fix_queue<Token> future;
 };

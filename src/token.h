@@ -15,7 +15,7 @@ typedef enum
   tok_err     = -5,
   tok_arrow   = -6,
   tok_equal   = -7,
-  tok_newline = -8,
+  tok_newline = -8
 } toktype;
 
 struct Token{
@@ -33,4 +33,5 @@ struct Token{
 std::ostream & operator<<(std::ostream &out, const Token &tok);
 
 }
+
 #endif

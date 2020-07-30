@@ -8,4 +8,5 @@ using namespace std;
 #define BLUE(s) ("\033[0;34m" s DEFAULT)
 #define DEBUG(s) \
   do{cerr<<RED("[debug] ")<<s<<endl;}while(0)
+
 #endif

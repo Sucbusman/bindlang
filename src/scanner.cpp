@@ -8,6 +8,7 @@ const char oneCharTokens[]=
   '(',')',
   '{','}',
   '[',']',
+  '<','>',
   ':',';','.',',',
   '|','\\'
 };
@@ -37,10 +38,8 @@ inline bool isop(const char& c){
     case '-':
     case '*':
     case '/':
-    case '#':
     case '%':
-    case '>':
-    case '<':
+    case '\'': //quote
       return true;
     default:
       return false;
@@ -185,11 +184,14 @@ Token Scanner::nextToken(){
       if (ch == '=') {
         nextChar();
         return makeToken(tok_equal);
-      } else
+      }else if(ch == '>'){
+        nextChar();
+        return makeToken(tok_id);
+      }
+      else
         return makeToken('=');
     }
   }
-
   if(isIdStart(char_)) return tokIdentify();
   return makeToken(tok_err);
 }
@@ -237,7 +239,7 @@ Token Scanner::tokIdentify(){
       if(ch2 == '>'){
         return makeToken(tok_id);
       }else{
-        nextChar();
+        nextChar();nextChar();//eat twe borrowed char
       }
     }
     else if(not (ch=='?' or

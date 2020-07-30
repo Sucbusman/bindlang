@@ -1,12 +1,17 @@
 #include <cstring>
 #include "interpreter.h"
 #include "ast.h"
+#include "type.h"
+#include "value.h"
 
 namespace bindlang {
 
 #define error(msg) \
   do{std::cerr<<RED("[Runtime error] ")<<msg<<endl; \
      error_num++;}while(0)
+
+#define Expect(v,t) \
+  do{if((v)!=(t)){error("Expect "#t);return nullptr;}}while(0)
 
 void Interpreter::reset(){
   error_num = 0;
@@ -53,12 +58,17 @@ void Interpreter::standardEnvironment(){
   PRIM("begin",inifinity,Begin);
   PRIM("env",0,InspectEnv);
   PRIM("debug",0,Debug);
-  PRIM2(">",1,Pipe,true);
-  PRIM2("<",1,Pipe,false);
-  calc("+",inifinity,0,[](double x,double y){return x+y;});
-  calc("-",inifinity,0,[](double x,double y){return x-y;});
-  calc("*",inifinity,1,[](double x,double y){return x*y;});
-  calc("/",inifinity,1,[](double x,double y){return x/y;});
+  PRIM("garbage",0,Garbage);
+  PRIM("+",1,Plus);
+  PRIM("'",0,Quote);
+  PRIM("take",2,Take);
+  PRIM("len",2,Length);
+  PRIM("set",2,Set);
+  PRIM2("=>",1,Pipe,true);
+  //calc("+",1,0,[](double x,double y){return x+y;});
+  calc("-",2,0,[](double x,double y){return x-y;});
+  calc("*",2,1,[](double x,double y){return x*y;});
+  calc("/",2,1,[](double x,double y){return x/y;});
   BINARY("gt",[](double x,double y){return x>y;});
   BINARY("lt",[](double x,double y){return x<y;});
   BINARY("ge",[](double x,double y){return x>=y;});
@@ -104,6 +114,7 @@ ValPtr Interpreter::eval(ExprPtr expr){
     case DEFINE:   return evalDefine(move(expr));
     case FUNC:     return evalFunc(expr->clone());
     case CALL:     return evalCall(move(expr));
+    case TUPLE:    return evalTuple(move(expr));
     case EOF:      error_num++;return nullptr;
     default:
       error("Unreachable");
@@ -124,6 +135,15 @@ ValPtr Interpreter::evalAtom(ExprPtr expr){
       return make_shared<Value>(make_obj(tok.literal));
   }
   return make_shared<Value>();
+}
+
+ValPtr Interpreter::evalTuple(ExprPtr expr){
+  auto tup = cast(ExprTuple*,expr);
+  auto c = ValPtrList();
+  for(auto & e:tup->container){
+    c.push_back(eval(move(e)));
+  }
+  return make_shared<Value>(make_obj(c));
 }
 
 ValPtr Interpreter::evalId(ExprPtr expr){
@@ -169,7 +189,7 @@ ValPtr Interpreter::evalCall(ExprPtr expr){
   auto extra  = move(call->extra);
   if(callee and callee->type == VAL_OBJ){
     auto obj = callee->as.obj;
-    if(obj->type == objType::String){
+    if(obj->type != objType::Primitive and obj->type != objType::Procedure){
       call_error(" can not be called");
     }else if(obj->type == objType::Primitive){
       auto prim = dynamic_cast<ObjPrimitive*>(callee->as.obj);
@@ -216,6 +236,7 @@ ValPtr Interpreter::evalCall(ExprPtr expr){
 #undef call_error
 }
 
+
 ValPtr Interpreter::Print(ExprPtrList args){
   for(const auto &arg : args){
     auto v = eval(arg->clone());
@@ -247,10 +268,10 @@ ValPtr Interpreter::Eq(ExprPtrList args){
             boolean = osl->s==osr->s;
             break;
           }
+          case objType::Tuple:
           case objType::Procedure:
-            boolean = objl == r->as.obj;
-            break;
           case objType::Primitive:
+          case objType::Ast:
             boolean = objl == r->as.obj;
             break;
         }
@@ -260,17 +281,13 @@ ValPtr Interpreter::Eq(ExprPtrList args){
   return std::make_shared<Value>(boolean);
 }
 
-
-#define Expect(v,t) \
-  do{if((v)!=(t)){error("Expect "#t);}}while(0)
-
 ValPtr Interpreter::calculator(ExprPtrList args,
                                unsigned long init,
                                function<double(double,double)> op){
   double ans = init;
   bool   first = true;
-  for(const auto & arg:args){                  
-    auto v = eval(arg->clone());               
+  for(const auto & arg:args){
+    auto v = eval(arg->clone());
     Expect(v->type,VAL_NUMBER);
     if(first){
       ans = v->as.number;
@@ -280,6 +297,46 @@ ValPtr Interpreter::calculator(ExprPtrList args,
     }
   }
   return make_shared<Value>(ans);              
+}
+
+template <typename T>
+ValPtr Interpreter::calcu2(ExprPtrList args,function<T*(T&,T&)> op){
+  T* ans = nullptr;
+  bool first = true;
+  for(const auto & arg:args){
+    auto v = eval(arg->clone());
+    Expect(v->type,VAL_OBJ);
+    T* o = cast2(T*,v->as.obj);
+    if(first){
+      ans = o;
+      first = false;
+    }else{
+      ans = op(*ans,*o);
+    }
+  }
+  return make_shared<Value>(ans);              
+}
+
+ValPtr Interpreter::Plus(ExprPtrList args){
+  auto firstval = eval(args[0]->clone());
+  switch(firstval->type){
+    case VAL_NUMBER:
+      return calculator(move(args),0,[](double l,double r){return l+r;});
+    case VAL_OBJ:{
+      auto o = firstval->as.obj;
+      switch(o->type){
+        case objType::String:
+          return calcu2<ObjString>(move(args),StringPlus);
+        case objType::Tuple:
+          return calcu2<ObjTuple>(move(args),TuplePlus);
+        default: goto E;
+      }
+    }
+    default: goto E;
+  }
+ E:
+  error("Plus expect number,string or list");
+  return nullptr;
 }
 
 ValPtr Interpreter::binary(ExprPtrList args,
@@ -322,7 +379,6 @@ ValPtr Interpreter::If(ExprPtrList args){
     }
   }
 }
-
 
 ValPtr Interpreter::Pipe(ExprPtrList args,bool left_to_right){
   if(args.size()<1){
@@ -373,6 +429,55 @@ ValPtr Interpreter::Pipe(ExprPtrList args,bool left_to_right){
   return eval(move(func));
 }
 
+#define TUPLE_PRELUDE(SRC)          \
+  auto tmp1__  = eval(move(SRC)); \
+  ValPtrList* pc;   \
+  if(not takeTuple(tmp1__, pc)){  \
+    error("Expect Tuple as first argument"); \
+    return nullptr; \
+  }
+
+#define NUMBER_PRELUDE(SRC) \
+  double* pn;                                     \
+  auto tmp2__   = eval(move(args[1]));          \
+  if(not takeNumber(tmp2__, pn)){                \
+    error("Expect number as second argument."); \
+    return nullptr;     \
+  }
+
+ValPtr Interpreter::Take(ExprPtrList args){
+  TUPLE_PRELUDE(args[0]);
+  NUMBER_PRELUDE(args[1]);
+  int idx = (int)(*pn);
+  if(idx<0 or idx>pc->size()){
+    error("index out of range.");
+    return nullptr;
+  }
+  return (*pc)[idx];
+}
+
+ValPtr Interpreter::Length(ExprPtrList args){
+  TUPLE_PRELUDE(args[0]);
+  return make_shared<Value>((double)pc->size());
+}
+
+ValPtr Interpreter::Set(ExprPtrList args){
+  TUPLE_PRELUDE(args[0]);
+  NUMBER_PRELUDE(args[1]);
+  int idx = (int)(*pn);
+  if(idx<0 or idx>pc->size()){
+    error("index out of range.");
+    return nullptr;
+  }
+  auto v = eval(move(args[2]));
+  (*pc)[idx] = v;
+  return v;
+}
+
+ValPtr Interpreter::Quote(ExprPtrList args){
+  return make_shared<Value>(make_obj(move(args)));
+}
+
 ValPtr Interpreter::InspectEnv(ExprPtrList args){
   envs.top()->show();
   return nullptr;
@@ -381,6 +486,17 @@ ValPtr Interpreter::InspectEnv(ExprPtrList args){
 ValPtr Interpreter::Debug(ExprPtrList args){
   interrupt = true;
   cout<<"[+] set break point"<<endl;
+  return nullptr;
+}
+
+ValPtr Interpreter::Garbage(ExprPtrList args){
+  Obj* p = objchain;
+  while(p){
+    cout<<p<<" ";
+    p->show();
+    cout<<endl;
+    p = p->next;
+  }
   return nullptr;
 }
 

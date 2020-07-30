@@ -1,5 +1,5 @@
-#ifndef __lexer__
-#define __lexer__
+#ifndef __scanner__
+#define __scanner__
 #include <istream>
 #include <functional>
 #include "queue.h"

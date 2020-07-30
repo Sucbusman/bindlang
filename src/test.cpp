@@ -12,22 +12,29 @@ using namespace bindlang;
   do{std::cout<<s<<std::endl;}while(0)
 
 void testScanner(Scanner & scn){
-  Token tok = scn.nextToken();
-  if(tok.type == tok_eof){
-    return;
+  Token tok;
+  while(true){
+    tok= scn.nextToken();
+    if(tok.type == tok_eof){
+      break;
+    }
+    std::cout<<tok<<std::endl;
   }
-  std::cout<<tok<<std::endl;
 }
 
 void testParser(Parser & parser){
-  ExprPtr expr = parser.parseNext();
-  expr->show();
+  ExprPtr expr;
+  while(parser.fine() and not parser.atEnd()){
+    expr= parser.parseNext();
+    expr->show();
+  }
 }
 
 void testInterpreter(Parser& parser,Interpreter& interp){
-  ExprPtr expr = parser.parseNext();
-  if(parser.fine()){
-    if(expr->type < 0) return;
+  ExprPtr expr;
+  while(parser.fine()){
+    expr = parser.parseNext();
+    if(not expr or expr->type < 0) break;
     ValPtr val = interp.eval(move(expr));
     printVal(val);
   }

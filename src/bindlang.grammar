@@ -1,11 +1,13 @@
 
 blank  ::= re"\s";
 id     ::= re"[a-zA-Z@_$][a-zA-Z@_$0-9]*";
+list   ::= "["[expr {blank expr}]"]"
+tupple ::= "("[expr {blank expr}]")"
 
-expr   ::= define|call|atom|func|id;             #|binary|grouping;
+expr   ::= define|call|atom|func|id;      #|binary|grouping;
 define ::= id "=" expr;
 call   ::= expr "(" [ expr {blank expr} ] ")";
-atom   ::= number | string;                     #| record;
+atom   ::= number | string | list | tupple;     #| record;
 func   ::= "\" [ id {blank id }" ] "->" expr;
 
 ###########no implement#########

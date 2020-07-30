@@ -12,7 +12,9 @@ using std::string;
 enum class objType{
   String,
   Procedure,
-  Primitive
+  Primitive,
+  Tuple,
+  Ast
 };
 
 struct Obj{
@@ -29,6 +31,8 @@ struct Obj{
 
 
 struct ObjString : Obj{
+  ObjString()
+    :Obj(objType::String){}
   ObjString(string s)
     :Obj(objType::String),s(s){}
   ObjString(string s,Obj *next)
@@ -38,6 +42,9 @@ struct ObjString : Obj{
   }
   string s;
 };
+
+ObjString* StringPlus(ObjString& l,ObjString& r);
+ObjString* operator+ (ObjString& l,ObjString& r);
 
 struct ObjProcedure : Obj{
   ObjProcedure()
@@ -73,11 +80,36 @@ struct ObjPrimitive : Obj {
   }
 };
 
+struct ObjTuple : Obj{
+  ObjTuple(ValPtrList container,Obj *next)
+    :Obj(objType::Tuple,next),container(container){}
+  ValPtrList container;
+  void show() override;
+};
+
+ObjTuple* TuplePlus(ObjTuple& l,ObjTuple& r);
+ObjTuple* operator+ (ObjTuple& l,ObjTuple& r);
+
+struct ObjAst : Obj{
+  ObjAst(ExprPtrList container,Obj *next)
+    :Obj(objType::Ast,next),container(move(container)){}
+  ExprPtrList container;
+  void show() override;
+};
+/* extract cpp value from Value */
+
+bool takeBool(ValPtr v,bool*& ans);
+bool takeNumber(ValPtr v,double*& ans);
+bool takeString(ValPtr v,string*& ans);
+bool takeTuple(ValPtr v,ValPtrList*& ans);
+
 /* gc stuf */
 extern Obj* objchain;
-ObjString* make_obj(string&);
+ObjString*    make_obj(string&);
 ObjProcedure* make_obj(EnvPtr,TokenList&,ExprPtr&);
 ObjPrimitive* make_obj(string,int,PrimFunc);
+ObjTuple*     make_obj(ValPtrList);
+ObjAst*       make_obj(ExprPtrList);
 
 typedef enum{
              VAL_BOOL,
@@ -95,6 +127,20 @@ struct Value{
     :type(VAL_NUMBER){as.number = number;}
   Value(Obj *obj)
     :type(VAL_OBJ){as.obj = obj;}
+  Value(Value const& v){
+    type = v.type;
+    switch(type){
+      case VAL_BOOL:
+      case VAL_NIL:
+      case VAL_NUMBER:
+        as = v.as;
+        break;
+      case VAL_OBJ:{
+        auto o = v.as.obj;
+        break;
+      }
+    }
+  }
   uint8_t type;
   union{
     bool   boolean;

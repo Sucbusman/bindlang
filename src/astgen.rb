@@ -4,7 +4,9 @@ Exprs = {
   Id:     ["Token id"],
   Define: ["Token id","ExprPtr expr"],
   Func:   ["TokenList params","ExprPtr body"],
-  Call:   ["ExprPtr callee","ExprPtrList args","ExprPtrList extra"]
+  Call:   ["ExprPtr callee","ExprPtrList args","ExprPtrList extra"],
+  Tuple: ["ExprPtrList container"],
+  Quote: ["ExprPtrList container"],
 }
 
 def expr_type

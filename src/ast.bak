@@ -17,7 +17,8 @@ typedef enum{
   ID,
   DEFINE,
   FUNC,
-  CALL
+  CALL,
+  TUPLE
 } expr_type;
 
 
@@ -49,7 +50,7 @@ struct ExprAtom : Expr{
 
   ExprPtr clone() override;
 
-  void show(){
+  void show() override {
     std::cout<<BLUE("<Expr ")<<"Atom "<<std::endl;
     std::cout<<std::setw(10)<<std::left<<"  literal:"<<std::endl;
     cout<<std::setw(14)<<' ';literal.show();std::cout<<endl;
@@ -65,7 +66,7 @@ struct ExprId : Expr{
 
   ExprPtr clone() override;
 
-  void show(){
+  void show() override {
     std::cout<<BLUE("<Expr ")<<"Id "<<std::endl;
     std::cout<<std::setw(10)<<std::left<<"  id:"<<std::endl;
     cout<<std::setw(14)<<' ';id.show();std::cout<<endl;
@@ -82,7 +83,7 @@ struct ExprDefine : Expr{
 
   ExprPtr clone() override;
 
-  void show(){
+  void show() override {
     std::cout<<BLUE("<Expr ")<<"Define "<<std::endl;
     std::cout<<std::setw(10)<<std::left<<"  id:"<<std::endl;
     cout<<std::setw(14)<<' ';id.show();std::cout<<endl;
@@ -101,7 +102,7 @@ struct ExprFunc : Expr{
 
   ExprPtr clone() override;
 
-  void show(){
+  void show() override {
     std::cout<<BLUE("<Expr ")<<"Func "<<std::endl;
     std::cout<<std::setw(10)<<std::left<<"  params:"<<std::endl;
     for(auto &i:params){
@@ -123,7 +124,7 @@ struct ExprCall : Expr{
 
   ExprPtr clone() override;
 
-  void show(){
+  void show() override {
     std::cout<<BLUE("<Expr ")<<"Call "<<std::endl;
     std::cout<<std::setw(10)<<std::left<<"  callee:"<<std::endl;
     cout<<std::setw(14)<<' ';callee->show();std::cout<<endl;
@@ -133,6 +134,24 @@ struct ExprCall : Expr{
     }
     std::cout<<std::setw(10)<<std::left<<"  extra:"<<std::endl;
     for(auto &i:extra){
+      std::cout<<std::setw(14)<<" ";i->show();std::cout<<endl;
+    }
+    std::cout<<BLUE(" >")<<std::endl;
+  }
+};
+
+struct ExprTuple : Expr{
+  ExprPtrList container;
+  
+  ExprTuple(ExprPtrList container)
+    : Expr(TUPLE),container(std::move(container)){}
+
+  ExprPtr clone() override;
+
+  void show() override {
+    std::cout<<BLUE("<Expr ")<<"Tuple "<<std::endl;
+    std::cout<<std::setw(10)<<std::left<<"  container:"<<std::endl;
+    for(auto &i:container){
       std::cout<<std::setw(14)<<" ";i->show();std::cout<<endl;
     }
     std::cout<<BLUE(" >")<<std::endl;
