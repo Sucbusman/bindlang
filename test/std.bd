@@ -1,0 +1,3 @@
+map = \f t ->begin(h=\n->if(eq(n len(t)) 1 begin(f(take(t n)) h(+(n 1)))) h(0))
+t = < 1 2 3 >
+map(print t)

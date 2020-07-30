@@ -142,6 +142,8 @@ void Scanner::skipWhitespace(){
     switch(char_){
     case ' ' :
     case '\r':
+    case '\n':
+      line_num++;
     case '\t':// fall down
       cache.clear();
       nextChar();
@@ -169,7 +171,7 @@ Token Scanner::nextToken(){
   if(isdigit(char_)) return tokNumber();
 
   switch (char_) {
-    case '\n': return tokNewline();
+    //case '\n': return tokNewline();
     case '"':  return tokString();
     case '-': {
       char ch = peekNext();
@@ -196,10 +198,12 @@ Token Scanner::nextToken(){
   return makeToken(tok_err);
 }
 
+/*
 Token Scanner::tokNewline(){
   line_num++;
   return makeToken(tok_newline);
 }
+*/
 
 Token Scanner::tokNumber(){
   auto notdigit = [](char ch)mutable{

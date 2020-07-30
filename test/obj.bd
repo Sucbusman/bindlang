@@ -1,7 +1,27 @@
-Student = \n a-> <n a>
+# compound data structure test
+Student = \n a 
+          -> <n a>
+
 mike = Student("mike" 18)
 john = Student("john" 20)
+
 sayHi = \s -> print("I am " take(s 0) ",my age is " take(s 1))
+
+sayHi(mike)
+sayHi(john)
+
+growOld = \n s -> set(s 1 +(take(s 1) n))
+
+twe-years-later = growOld(2)
+
+map = \f t
+      -> begin(h=\n->if(eq(n len(t))
+								        1
+							          begin(f(take(t n))
+							                h(+(n 1))))
+				       h(0))
+
+map(twe-years-later <mike john>)
 
 sayHi(mike)
 sayHi(john)
