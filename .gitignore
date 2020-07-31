@@ -1,5 +1,5 @@
 obj/*
-main
+bindlang
 *.log
 src/.ccls-cache/
 *#

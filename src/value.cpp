@@ -86,10 +86,10 @@ bool takeNumber(ValPtr v,double*& ans){
   return true;
 }
 
-#define CHECK(T1,T2,T3)                         \
+#define CHECK(T1,T2,T3)                       \
   if(v->type != T1) return false;             \
-  auto tmp = v->as.obj;                            \
-  if(tmp->type != objType::T2) return false;    \
+  auto tmp = v->as.obj;                       \
+  if(tmp->type != objType::T2) return false;  \
   auto obj = dynamic_cast<T3*>(tmp);
 
 bool takeString(ValPtr v,string*& ans){
