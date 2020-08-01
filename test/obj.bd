@@ -10,7 +10,7 @@ sayHi = \s -> print("I am " take(s 0) ",my age is " take(s 1))
 sayHi(mike)
 sayHi(john)
 
-growOld = \n s -> set(s 1 +(take(s 1) n))
+growOld = \n s -> set!(s 1 +(take(s 1) n))
 
 twe-years-later = growOld(2)
 

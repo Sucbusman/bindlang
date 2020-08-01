@@ -18,7 +18,6 @@ void Environment::set(string s,const ValPtr& val){
   map[s] = val;
 }
 
-
 // make obj helper
 ObjString* make_obj(string& s){
   auto o = new ObjString(string(s),objchain);
@@ -28,7 +27,7 @@ ObjString* make_obj(string& s){
 
 ObjProcedure* make_obj(EnvPtr closure,TokenList& params,
                        ExprPtr& body){
-  auto o = new ObjProcedure(closure,move(params),move(body),objchain);
+  auto o = new ObjProcedure(closure,params,move(body),objchain);
   objchain = o;
   return o;
 }
@@ -49,6 +48,38 @@ ObjAst* make_obj(ExprPtrList container){
   auto o = new ObjAst(move(container),objchain);
   objchain = o;
   return o;
+}
+
+Obj* copy_obj(Obj* obj){
+  switch(obj->type){
+    case objType::String:{
+      auto obj2 = cast(ObjString*,obj);
+      return make_obj(obj2->s);
+    }
+    case objType::Procedure:{
+      auto obj2 = cast(ObjProcedure*,obj);
+      return make_obj(make_shared<Environment>(*obj2->closure),
+                      obj2->params,obj2->body);
+    }
+    case objType::Primitive:{
+      auto obj2 = cast(ObjPrimitive*,obj);
+      return make_obj(obj2->name,obj2->arity,obj2->func);
+    }
+    case objType::Tuple:{
+      auto obj2 = cast(ObjTuple*,obj);
+      return make_obj(obj2->container);
+    }
+    case objType::Ast:{
+      auto obj2 = cast(ObjAst*,obj);
+      ExprPtrList newc;
+      for(auto const& expr:obj2->container){
+        newc.push_back(expr->clone());
+      }
+      return make_obj(move(newc));
+    }
+  }
+  return nullptr;
+#undef cast
 }
 
 // operator overloading
@@ -106,7 +137,9 @@ bool takeTuple(ValPtr v,ValPtrList*& ans){
 
 // print stuff
 void printVal(ValPtr val) {
-  if(!val) return;
+  if(!val){
+    cout<<"nil";return; 
+  }
   switch (val->type) {
     case VAL_BOOL:
       if(val->as.boolean){

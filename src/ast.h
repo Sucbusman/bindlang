@@ -11,6 +11,10 @@
 #include "type.h"
 
 namespace bindlang{
+using std::cout;
+using std::end;
+using std::setw;
+using TokenList = std::vector<Token>;
 
 typedef enum{
   ATOM,
@@ -31,12 +35,11 @@ struct Expr {
   Expr(int type):type(type){};
 };
 
-using TokenList = std::vector<Token>;
 
 struct ExprEof : Expr{
   ExprEof():Expr(-1){}
   void show(){
-    std::cout<<"<Expr EOF >"<<std::endl;
+    cout<<"<Expr EOF >"<<endl;
   }
   ExprPtr clone(){
     return std::make_unique<ExprEof>(); 
@@ -52,10 +55,10 @@ struct ExprAtom : Expr{
   ExprPtr clone() override;
 
   void show() override {
-    std::cout<<BLUE("<Expr ")<<"Atom "<<std::endl;
-    std::cout<<std::setw(10)<<std::left<<"  literal:"<<std::endl;
-    cout<<std::setw(14)<<' ';literal.show();std::cout<<endl;
-    std::cout<<BLUE(" >")<<std::endl;
+    cout<<BLUE("<Expr ")<<"Atom "<<endl;
+    cout<<setw(10)<<std::left<<"  literal:"<<endl;
+    cout<<setw(14)<<' ';literal.show();cout<<endl;
+    cout<<BLUE(" >")<<endl;
   }
 };
 
@@ -68,10 +71,10 @@ struct ExprId : Expr{
   ExprPtr clone() override;
 
   void show() override {
-    std::cout<<BLUE("<Expr ")<<"Id "<<std::endl;
-    std::cout<<std::setw(10)<<std::left<<"  id:"<<std::endl;
-    cout<<std::setw(14)<<' ';id.show();std::cout<<endl;
-    std::cout<<BLUE(" >")<<std::endl;
+    cout<<BLUE("<Expr ")<<"Id "<<endl;
+    cout<<setw(10)<<std::left<<"  id:"<<endl;
+    cout<<setw(14)<<' ';id.show();cout<<endl;
+    cout<<BLUE(" >")<<endl;
   }
 };
 
@@ -85,12 +88,12 @@ struct ExprDefine : Expr{
   ExprPtr clone() override;
 
   void show() override {
-    std::cout<<BLUE("<Expr ")<<"Define "<<std::endl;
-    std::cout<<std::setw(10)<<std::left<<"  id:"<<std::endl;
-    cout<<std::setw(14)<<' ';id.show();std::cout<<endl;
-    std::cout<<std::setw(10)<<std::left<<"  expr:"<<std::endl;
-    cout<<std::setw(14)<<' ';expr->show();std::cout<<endl;
-    std::cout<<BLUE(" >")<<std::endl;
+    cout<<BLUE("<Expr ")<<"Define "<<endl;
+    cout<<setw(10)<<std::left<<"  id:"<<endl;
+    cout<<setw(14)<<' ';id.show();cout<<endl;
+    cout<<setw(10)<<std::left<<"  expr:"<<endl;
+    cout<<setw(14)<<' ';expr->show();cout<<endl;
+    cout<<BLUE(" >")<<endl;
   }
 };
 
@@ -104,14 +107,14 @@ struct ExprFunc : Expr{
   ExprPtr clone() override;
 
   void show() override {
-    std::cout<<BLUE("<Expr ")<<"Func "<<std::endl;
-    std::cout<<std::setw(10)<<std::left<<"  params:"<<std::endl;
+    cout<<BLUE("<Expr ")<<"Func "<<endl;
+    cout<<setw(10)<<std::left<<"  params:"<<endl;
     for(auto &i:params){
-      std::cout<<std::setw(14)<<" ";i.show();std::cout<<endl;
+      cout<<setw(14)<<" ";i.show();cout<<endl;
     }
-    std::cout<<std::setw(10)<<std::left<<"  body:"<<std::endl;
-    cout<<std::setw(14)<<' ';body->show();std::cout<<endl;
-    std::cout<<BLUE(" >")<<std::endl;
+    cout<<setw(10)<<std::left<<"  body:"<<endl;
+    cout<<setw(14)<<' ';body->show();cout<<endl;
+    cout<<BLUE(" >")<<endl;
   }
 };
 
@@ -126,18 +129,18 @@ struct ExprCall : Expr{
   ExprPtr clone() override;
 
   void show() override {
-    std::cout<<BLUE("<Expr ")<<"Call "<<std::endl;
-    std::cout<<std::setw(10)<<std::left<<"  callee:"<<std::endl;
-    cout<<std::setw(14)<<' ';callee->show();std::cout<<endl;
-    std::cout<<std::setw(10)<<std::left<<"  args:"<<std::endl;
+    cout<<BLUE("<Expr ")<<"Call "<<endl;
+    cout<<setw(10)<<std::left<<"  callee:"<<endl;
+    cout<<setw(14)<<' ';callee->show();cout<<endl;
+    cout<<setw(10)<<std::left<<"  args:"<<endl;
     for(auto &i:args){
-      std::cout<<std::setw(14)<<" ";i->show();std::cout<<endl;
+      cout<<setw(14)<<" ";i->show();cout<<endl;
     }
-    std::cout<<std::setw(10)<<std::left<<"  extra:"<<std::endl;
+    cout<<setw(10)<<std::left<<"  extra:"<<endl;
     for(auto &i:extra){
-      std::cout<<std::setw(14)<<" ";i->show();std::cout<<endl;
+      cout<<setw(14)<<" ";i->show();cout<<endl;
     }
-    std::cout<<BLUE(" >")<<std::endl;
+    cout<<BLUE(" >")<<endl;
   }
 };
 
@@ -150,12 +153,12 @@ struct ExprTuple : Expr{
   ExprPtr clone() override;
 
   void show() override {
-    std::cout<<BLUE("<Expr ")<<"Tuple "<<std::endl;
-    std::cout<<std::setw(10)<<std::left<<"  container:"<<std::endl;
+    cout<<BLUE("<Expr ")<<"Tuple "<<endl;
+    cout<<setw(10)<<std::left<<"  container:"<<endl;
     for(auto &i:container){
-      std::cout<<std::setw(14)<<" ";i->show();std::cout<<endl;
+      cout<<setw(14)<<" ";i->show();cout<<endl;
     }
-    std::cout<<BLUE(" >")<<std::endl;
+    cout<<BLUE(" >")<<endl;
   }
 };
 
@@ -168,12 +171,12 @@ struct ExprQuote : Expr{
   ExprPtr clone() override;
 
   void show() override {
-    std::cout<<BLUE("<Expr ")<<"Quote "<<std::endl;
-    std::cout<<std::setw(10)<<std::left<<"  container:"<<std::endl;
+    cout<<BLUE("<Expr ")<<"Quote "<<endl;
+    cout<<setw(10)<<std::left<<"  container:"<<endl;
     for(auto &i:container){
-      std::cout<<std::setw(14)<<" ";i->show();std::cout<<endl;
+      cout<<setw(14)<<" ";i->show();cout<<endl;
     }
-    std::cout<<BLUE(" >")<<std::endl;
+    cout<<BLUE(" >")<<endl;
   }
 };
 

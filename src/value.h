@@ -49,20 +49,14 @@ ObjString* operator+ (ObjString& l,ObjString& r);
 struct ObjProcedure : Obj{
   ObjProcedure()
     :Obj(objType::Procedure){}
-  ObjProcedure(TokenList params, ExprPtr body)
-    :Obj(objType::Procedure),
-     params(move(params)),body(move(body)){}
-  ObjProcedure(TokenList params, ExprPtr body,Obj *next)
-    :Obj(objType::Procedure,next),
-     params(move(params)),body(move(body)){}
   ObjProcedure(EnvPtr closure,TokenList params, ExprPtr body,Obj *next)
-    :Obj(objType::Procedure,next),closure(closure),
-     params(move(params)),body(move(body)){}
+    :Obj(objType::Procedure,next),closure(closure)
+    ,params(move(params)),body(move(body)){}
   EnvPtr closure;
   TokenList params;
   ExprPtr body;
   void show(){
-    std::cout<<BLUE("<Procedure >");
+    std::cout<<BLUE("<Procedure ")<<BLUE(" >");
   }
 };
 
@@ -70,9 +64,10 @@ struct ObjPrimitive : Obj {
   ObjPrimitive(string name,int arity,
                std::function<ValPtr(ExprPtrList)> func,
                Obj *next)
-    :Obj(objType::Primitive,next),name(name),func(func){}
+    :Obj(objType::Primitive,next),
+     name(name),arity(arity),func(func){}
   string name;
-  unsigned long arity;
+  int arity;
   PrimFunc func;
   void show(){
     std::cout<<BLUE("<Primitive ")
@@ -110,6 +105,7 @@ ObjProcedure* make_obj(EnvPtr,TokenList&,ExprPtr&);
 ObjPrimitive* make_obj(string,int,PrimFunc);
 ObjTuple*     make_obj(ValPtrList);
 ObjAst*       make_obj(ExprPtrList);
+Obj*          copy_obj(Obj* obj);
 
 typedef enum{
              VAL_BOOL,
@@ -137,6 +133,7 @@ struct Value{
         break;
       case VAL_OBJ:{
         auto o = v.as.obj;
+        as.obj = copy_obj(o);
         break;
       }
     }
@@ -155,6 +152,10 @@ class Environment{
  public:
   Environment(){}
   Environment(EnvPtr outer):outer(outer){}
+  Environment(Environment const& e){
+    outer = e.outer;
+    map  = unordered_map<string,ValPtr>(e.map);
+  }
   ValPtr get(string);
   void   set(string,const ValPtr&);
   void   show();

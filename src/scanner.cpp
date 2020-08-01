@@ -82,10 +82,15 @@ void Scanner::nextChar(){
 }
 
 char Scanner::borrow(){
-  char c;
-  in>> c;
-  future.push(c);
-  return c;
+  if(not in.eof()){
+    char c;
+    in>> c;
+    future.push(c);
+    return c;
+  }else{
+    //return blank char when eof so that it does not effect
+    return ' ';
+  }
 }
 
 char Scanner::peekNext(){

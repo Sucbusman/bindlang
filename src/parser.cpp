@@ -101,6 +101,12 @@ bool Parser::verifyId(){
   return verifyId(token_);
 }
 
+#define CHECKINT(n)                          \
+  if((n) > 0x7fffffff){                      \
+    error("Expect at most 2**31-1 items");   \
+    return nullptr;                          \
+  }
+
 ExprPtr Parser::parseFunc(){
   //eg. \x,y -> someproc(x,y)
   //    ^
@@ -113,6 +119,7 @@ ExprPtr Parser::parseFunc(){
   }
   verifyId();
   while(not atEnd()){
+    CHECKINT(params.size());
     params.push_back(token_);
     next();
     if(token_.type == tok_id){
@@ -196,8 +203,10 @@ ExprPtr Parser::parseCall(ExprPtr callee){
   if(tok.type == '|') goto MIDDLE;
   while(true){
     if(delim){
+      CHECKINT(extra.size());
       extra.push_back(parseExpr());
     }else{
+      CHECKINT(args.size());
       args.push_back(parseExpr());
     }
     tok = peekNext();
@@ -237,3 +246,5 @@ ExprPtr Parser::parseId(){
   verifyId(token_);
   return make_unique<ExprId>(token_);
 }
+
+#undef CHECKINT

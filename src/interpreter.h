@@ -27,20 +27,30 @@ class Interpreter{
   ValPtr evalDefine(ExprPtr expr);
   ValPtr evalFunc(ExprPtr expr);
   ValPtr evalCall(ExprPtr expr);
+  ValPtr evalCallProc(ObjProcedure* proc,
+                      ExprPtrList& args,ExprPtrList& extra);
+  ValPtr evalCallPrim(ObjPrimitive* prim,
+                      ExprPtrList& args,ExprPtrList& extra);
 
   // calculate
-  ValPtr calculator(ExprPtrList args,unsigned long init,
+  ValPtr calculator(ExprPtrList args,double init,
                     function<double(double,double)>);
   template <typename T>
   ValPtr calcu2(ExprPtrList args,function<T*(T&,T&)>);
   ValPtr Plus(ExprPtrList args);
-  ValPtr binary(ExprPtrList args,function<bool(double,double)>);
+
+  // comparison
+  ValPtr compare(ExprPtrList args,function<bool(double,double)>);
   ValPtr Eq(ExprPtrList args);
+
+  // logic
+  ValPtr Not(ExprPtrList args);
+  ValPtr And(ExprPtrList args);
+  ValPtr Or(ExprPtrList args);
 
   // control flow
   ValPtr Begin(ExprPtrList args);
   ValPtr If(ExprPtrList args);
-  ValPtr Print(ExprPtrList args);
   ValPtr While(ExprPtrList args);
   ValPtr Pipe(ExprPtrList args,bool);
   ValPtr Quote(ExprPtrList args);
@@ -49,6 +59,11 @@ class Interpreter{
   ValPtr Take(ExprPtrList args);
   ValPtr Length(ExprPtrList args);
   ValPtr Set(ExprPtrList args);
+  ValPtr Push(ExprPtrList args);
+  ValPtr Pop(ExprPtrList args);
+
+  // IO
+  ValPtr Print(ExprPtrList args);
 
   // debug
   ValPtr InspectEnv(ExprPtrList args);

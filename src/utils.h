@@ -8,5 +8,8 @@ using namespace std;
 #define BLUE(s) ("\033[0;34m" s DEFAULT)
 #define DEBUG(s) \
   do{cerr<<RED("[debug] ")<<s<<endl;}while(0)
+#define rcast(T,e) \
+  (dynamic_cast<T>((e).release()))
+#define cast(T,o) (dynamic_cast<T>((o)))
 
 #endif

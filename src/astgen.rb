@@ -1,12 +1,12 @@
 #!/bin/ruby
 Exprs = {
-  Atom:   ["Token literal"],
-  Id:     ["Token id"],
-  Define: ["Token id","ExprPtr expr"],
-  Func:   ["TokenList params","ExprPtr body"],
-  Call:   ["ExprPtr callee","ExprPtrList args","ExprPtrList extra"],
-  Tuple: ["ExprPtrList container"],
-  Quote: ["ExprPtrList container"],
+  Atom:    ["Token literal"],
+  Id:      ["Token id"],
+  Define:  ["Token id","ExprPtr expr"],
+  Func:    ["TokenList params","ExprPtr body"],
+  Call:    ["ExprPtr callee","ExprPtrList args","ExprPtrList extra"],
+  Tuple:   ["ExprPtrList container"],
+  Quote:   ["ExprPtrList container"],
 }
 
 def expr_type
@@ -31,6 +31,10 @@ Prelude= <<EOF
 #include "type.h"
 
 namespace bindlang{
+using std::cout;
+using std::end;
+using std::setw;
+using TokenList = std::vector<Token>;
 
 #{expr_type}
 
@@ -42,12 +46,11 @@ struct Expr {
   Expr(int type):type(type){};
 };
 
-using TokenList = std::vector<Token>;
 
 struct ExprEof : Expr{
   ExprEof():Expr(-1){}
   void show(){
-    std::cout<<"<Expr EOF >"<<std::endl;
+    cout<<"<Expr EOF >"<<endl;
   }
   ExprPtr clone(){
     return std::make_unique<ExprEof>(); 
@@ -87,21 +90,23 @@ struct Expr#{name} : Expr{
   ExprPtr clone() override;
 
   void show() override {
-    std::cout<<BLUE("<Expr ")<<"#{name} "<<std::endl;
+    cout<<BLUE("<Expr ")<<"#{name} "<<endl;
     #{members.map do |member|
         type,id = member.split(' ')
-        'std::cout<<std::setw(10)<<std::left<<"  '+id+':"<<std::endl;'+
+        'cout<<setw(10)<<std::left<<"  '+id+':"<<endl;'+
                                                      "\n    "+
         if type.end_with? 'List'
           "for(auto &i:#{id}){\n    "+
-          '  std::cout<<std::setw(14)<<" ";'+
-          "i#{connector(type)}show();std::cout<<endl;\n    }"
+          '  cout<<setw(14)<<" ";'+
+          "i#{connector(type)}show();cout<<endl;\n    }"
+        elsif type == "PrimFunc"
+          'cout<<setw(14)<<" primitive "<<endl;'
         else
-          "cout<<std::setw(14)<<' ';"+id+connector(type)+"show();std::cout<<endl;"
+          "cout<<setw(14)<<' ';"+id+connector(type)+"show();cout<<endl;"
         end
       end.join("\n    ")
      }
-    std::cout<<BLUE(" >")<<std::endl;
+    cout<<BLUE(" >")<<endl;
   }
 };
 EOF
