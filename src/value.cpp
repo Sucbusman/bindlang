@@ -3,10 +3,10 @@
 namespace bindlang{
 Obj* objchain = nullptr;
 
-ValPtr Environment::get(string s){
+ValPtr* Environment::get(string s){
   auto it = map.find(s);
   if(it != map.end()){
-    return it->second;
+    return &it->second;
   }else if(outer){
     return outer->get(s);
   }else{

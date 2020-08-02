@@ -156,7 +156,7 @@ class Environment{
     outer = e.outer;
     map  = unordered_map<string,ValPtr>(e.map);
   }
-  ValPtr get(string);
+  ValPtr* get(string);
   void   set(string,const ValPtr&);
   void   show();
  private:

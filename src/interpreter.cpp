@@ -127,21 +127,19 @@ ValPtr Interpreter::eval(ExprPtr expr){
     auto copy = expr->clone();
     debugger(move(copy)); 
   }
-  ValPtr result;
   switch(expr->type){
-    case ATOM:     result = evalAtom(move(expr));break;
-    case ID:       result = evalId(move(expr));break;
-    case DEFINE:   result = evalDefine(move(expr));break;
-    case FUNC:     result = evalFunc(expr->clone());break;
-    case CALL:     result = evalCall(move(expr));break;
-    case TUPLE:    result = evalTuple(move(expr));break;
+    case ATOM:     return evalAtom(move(expr));break;
+    case ID:       return evalId(move(expr));break;
+    case DEFINE:   return evalDefine(move(expr));break;
+    case FUNC:     return evalFunc(expr->clone());break;
+    case CALL:     return evalCall(move(expr));break;
+    case TUPLE:    return evalTuple(move(expr));break;
     case EOF:      error_num++;return nullptr;
     default:
       error("Unreachable");
       return nullptr;
   }
-  check_error();
-  return result;
+  return nullptr;
 }
 
 ValPtr Interpreter::evalAtom(ExprPtr expr){
@@ -172,17 +170,18 @@ ValPtr Interpreter::evalId(ExprPtr expr){
   if(v == nullptr){
     error(tok.literal<<" not defined.");
   }
-  return v;
+  return *v;
 }
 
 ValPtr Interpreter::evalDefine(ExprPtr expr){
   auto def = rcast(ExprDefine*,expr);
   auto tok = def->id;
   auto val = eval(move(def->expr));
+  check_error();
   auto v = envs.top()->get(tok.literal);
   if(v){
     //change value exists in outer environment
-    *v = *val;
+    *v = make_shared<Value>(*val);
   }else{
     //define at top environment
     envs.top()->set(tok.literal,val);
@@ -203,6 +202,7 @@ ValPtr Interpreter::evalCall(ExprPtr expr){
     error_num++;return nullptr;}while(0)
   auto call   = rcast(ExprCall*,expr);
   auto callee = eval(move(call->callee));
+  check_error();
   auto args   = move(call->args);
   auto extra  = move(call->extra);
   if(callee and callee->type == VAL_OBJ){
@@ -231,6 +231,7 @@ ValPtr Interpreter::evalCallPrim(ObjPrimitive* prim,ExprPtrList& args,ExprPtrLis
     eval(move(extra_expr));
   }
   auto result = prim->func(move(args));
+
   envs.pop();
   return result;
 }
@@ -247,6 +248,7 @@ ValPtr Interpreter::evalCallProc(ObjProcedure* proc,ExprPtrList& args,ExprPtrLis
     new_env->set((proc->params)[i].literal,
                  eval(move(args[i])));
   }
+  check_error();
   // curry
   if(left_arity>0){
     auto left_params = TokenList();
@@ -260,6 +262,10 @@ ValPtr Interpreter::evalCallProc(ObjProcedure* proc,ExprPtrList& args,ExprPtrLis
   envs.push(new_env);
   for(auto & extra_expr:extra){
     eval(move(extra_expr));
+  }
+  if(error_num>0){
+    envs.pop();
+    return nullptr;
   }
   //eval complete function body
   auto result = eval(move(body));
@@ -277,6 +283,7 @@ ValPtr Interpreter::calculator(ExprPtrList args,
   bool   first = true;
   for(const auto & arg:args){
     auto v = eval(arg->clone());
+    check_error();
     Expect(v->type,VAL_NUMBER);
     if(first){
       ans = v->as.number;
@@ -294,6 +301,7 @@ ValPtr Interpreter::calcu2(ExprPtrList args,function<T*(T&,T&)> op){
   bool first = true;
   for(const auto & arg:args){
     auto v = eval(arg->clone());
+    check_error();
     Expect(v->type,VAL_OBJ);
     T* o = cast(T*,v->as.obj);
     if(first){
@@ -308,6 +316,7 @@ ValPtr Interpreter::calcu2(ExprPtrList args,function<T*(T&,T&)> op){
 
 ValPtr Interpreter::Plus(ExprPtrList args){
   auto firstval = eval(args[0]->clone());
+  check_error();
   switch(firstval->type){
     case VAL_NUMBER:
       return calculator(move(args),0,[](double l,double r){return l+r;});
@@ -331,7 +340,9 @@ ValPtr Interpreter::Plus(ExprPtrList args){
 // comparison
 ValPtr Interpreter::Eq(ExprPtrList args){
   auto l = eval(args[0]->clone());
+  check_error();
   auto r = eval(args[1]->clone());
+  check_error();
   bool boolean = false;
   if(l->type == r->type){
     switch(l->type){
@@ -367,7 +378,9 @@ ValPtr Interpreter::compare(ExprPtrList args,
                            function<bool(double,double)> op){
   
   auto l = eval(args[0]->clone());
+  check_error();
   auto r = eval(args[1]->clone());
+  check_error();
   Expect(l->type,VAL_NUMBER);
   Expect(r->type,VAL_NUMBER);
   return make_shared<Value>(op(l->as.number,r->as.number));
@@ -384,6 +397,7 @@ bool truthy(ValPtr val){
 
 ValPtr Interpreter::Not(ExprPtrList args){
   auto ans = eval(move(args[0]));
+  check_error();
   if(truthy(ans)) return make_shared<Value>(false);
   return make_shared<Value>(true);
 }

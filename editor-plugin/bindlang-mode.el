@@ -3,7 +3,7 @@
 (defun bindlang-electric-proc ()
   "insert procedure definition quickly"
   (interactive)
-  (insert "\\ ->")
+  (insert "\\->")
   (backward-char 2))
 
 (defvar bindlang-mode-map
@@ -17,21 +17,21 @@
 
 
 (defvar bindlang-highlights
-  `(,(rx symbol-start
-         (or "eq" "ge" "gt" "le" "lt"
-             "push!" "pop!" "set!" "take" "len"
-             "not" "and" "or"
-             "+" "-" "*" "/"
-             "=>" "'"
-             "begin" "if" "while"
-             "print" )
+  `((,(rx (or symbol-start "->")
+         (group  (or "eq" "ge" "gt" "le" "lt"
+                     "push!" "pop!" "set!" "take" "len"
+                     "not" "and" "or"
+                     "+" "-" "*" "/"
+                     "=>" "'"
+                     "begin" "if" "while"
+                     "print" ))
          symbol-end)
-    (,(rx symbol-start "->")
-     . font-lock-builtin-face)
-    (,(rx symbol-start (group (1+ (or word ?_ ?? ?!)))
+     (1 font-lock-keyword-face))
+    (,(rx  "->") . font-lock-builtin-face)
+    (,(rx symbol-start (group (1+ (or word ?_ ?? ?! ?-)))
           (0+ space) "=" (0+ (or space eol)) (group ?\\))
      (1 font-lock-function-name-face) (2 font-lock-builtin-face))
-    (,(rx symbol-start (group (1+ (or word ?_ ?? ?!)))
+    (,(rx symbol-start (group (1+ (or word ?_ ?? ?! ?-)))
           (0+ space) "=")
      (1 font-lock-variable-name-face))
     (,(rx symbol-start (group ?<) (*? anything) (group ?>))
@@ -51,7 +51,6 @@
                                            (make-vector 1 pos)))))
           (?\) (setq left (1- left))))
         (setq pos (1+ pos)))
-      (message "left:%S poses:%S"left poses)
       (cond ((> left 0) (cons left poses))
             ((< left 0) (cons left nil))
             ((cons left nil))))))
@@ -83,15 +82,14 @@
 (defun bindlang-indent-line ()
   "Indent current line as bindlang code"
   (interactive)
-  (let ((idt (bindlang-calculate-indent)))
-    (message "idt:%S" idt)
-    (indent-line-to idt)))
-  ;; (indent-to (bindlang-calculate-indent))
+  (indent-line-to (bindlang-calculate-indent)))
   
 
 (defvar bindlang-mode-syntax-table
   (let ((st (make-syntax-table)))
-    ;;(modify-syntax-entry ?_ "w" st)
+    (modify-syntax-entry ?_ "w" st)
+    (modify-syntax-entry ?- "_" st)
+    (modify-syntax-entry ?> "_" st)
     (modify-syntax-entry ?# "<" st)
     (modify-syntax-entry ?\n ">b" st)
     st)

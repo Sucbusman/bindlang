@@ -1,0 +1,48 @@
+# rational
+make-rat=\n d-><n d>
+number=\r->take(r 0)
+denom =\r->take(r 1)
+show-rat=\r->print(number(r)"/"denom(r))
+rat-to-num =\r->/(number(r) denom(r))
+
+add-rat=\x y
+->make-rat(+(*(number(x) denom(y))
+             *(number(y) denom(x)))
+           *(denom(x) denom(y)))
+
+sub-rat=\x y
+->make-rat(-(*(number(x) denom(y))
+             *(number(y) denom(x)))
+           *(denom(x) denom(y)))
+
+mul-rat=\x y
+->make-rat(*(number(x) number(y))
+           *(denom(x) denom(y)))
+
+div-rat=\x y
+->make-rat(*(number(x) denom(y))
+           *(denom(x) number(y)))
+
+eq-rat=\x y
+->eq(*(number(x) denom(y))
+     *(number(y) denom(x)))
+
+
+#test
+a = make-rat(3 2)
+b = make-rat(5 2)
+c = make-rat(7 2)
+d = make-rat(9 2)
+
+foldl = \f i t
+->begin(h=\n a->
+         if(eq(n len(t))
+            a
+            h(+(n 1) f(a take(t n))))
+         h(0 i))
+
+sum = foldl(add-rat a <b c d>)
+product = foldl(mul-rat a <b c d>)
+
+print("Sum is:" show-rat(sum) " "rat-to-num(sum))
+print("Product is:" show-rat(product) " "rat-to-num(product))
