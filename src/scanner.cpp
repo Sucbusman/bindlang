@@ -234,16 +234,18 @@ Token Scanner::tokString(){
 }
 
 bool Scanner::isIdStart(char ch){
-  if(isalpha(ch) or isop(ch))
+  if(isalpha(ch) or isop(ch)){
     return true;
+  }
   else
     return false;
 }
 
 Token Scanner::tokIdentify(){
-  while(not in.eof()){
+  while(not atEnd()){
     char ch = borrow();
     if(ch == '-'){
+      if(atEnd()) break;
       char ch2 = borrow();
       if(ch2 == '>'){
         return makeToken(tok_id);

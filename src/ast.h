@@ -99,7 +99,7 @@ struct ExprDefine : Expr{
 
 struct ExprFunc : Expr{
   TokenList params;
-  ExprPtr body;
+  ExprPtr   body;
   
   ExprFunc(TokenList params,ExprPtr body)
     : Expr(FUNC),params(std::move(params)),body(std::move(body)){}
