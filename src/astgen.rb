@@ -6,6 +6,7 @@ Exprs = {
   Func:    ["TokenList params","ExprPtr body"],
   Call:    ["ExprPtr callee","ExprPtrList args","ExprPtrList extra"],
   Tuple:   ["ExprPtrList container"],
+  List:    ["ExprPtrList container"],
   Quote:   ["ExprPtrList container"],
 }
 

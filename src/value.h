@@ -2,6 +2,7 @@
 #define __value__
 #include <cstdint>
 #include <unordered_map>
+#include <stack>
 #include "type.h"
 #include "ast.h"
 
@@ -14,18 +15,27 @@ enum class objType{
   Procedure,
   Primitive,
   Tuple,
+  List,
   Ast
+};
+
+namespace gc{
+extern uint8_t NONE;
+extern uint8_t USE;
+extern uint16_t number;
 };
 
 struct Obj{
   objType type;
   struct Obj *next;
+  uint8_t flag;
   Obj()
-    :type(objType::String),next(nullptr){}
+    :type(objType::String),next(nullptr),flag(gc::NONE){}
   Obj(objType type)
-    :type(type),next(nullptr){}
+    :type(type),next(nullptr),flag(gc::NONE){}
   Obj(objType type,Obj *next)
-    :type(type),next(next){}
+    :type(type),next(next),flag(gc::NONE){}
+  virtual ~Obj();
   virtual void show()=0;
 };
 
@@ -82,6 +92,16 @@ struct ObjTuple : Obj{
   void show() override;
 };
 
+struct ObjList : Obj{
+  ObjList(ValPtr head,Obj *next)
+    :Obj(objType::List,next),head(head),tail(nullptr){}
+  ObjList(ValPtr head,ObjList* tail,Obj *next)
+    :Obj(objType::List,next),head(head),tail(tail){}
+  ValPtr head;
+  ObjListPtr tail;
+  void show() override;
+};
+
 ObjTuple* TuplePlus(ObjTuple& l,ObjTuple& r);
 ObjTuple* operator+ (ObjTuple& l,ObjTuple& r);
 
@@ -97,20 +117,33 @@ bool takeBool(ValPtr v,bool*& ans);
 bool takeNumber(ValPtr v,double*& ans);
 bool takeString(ValPtr v,string*& ans);
 bool takeTuple(ValPtr v,ValPtrList*& ans);
+bool takeList(ValPtr v,ValPtr*& head,ObjListPtr*& tail);
 
 /* gc stuf */
 extern Obj* objchain;
+extern stack<EnvPtr> envs;
 ObjString*    make_obj(string&);
 ObjProcedure* make_obj(EnvPtr,TokenList&,ExprPtr&);
 ObjPrimitive* make_obj(string,int,PrimFunc);
 ObjTuple*     make_obj(ValPtrList);
+ObjList*      make_obj(ValPtr head,ObjList* tail);
 ObjAst*       make_obj(ExprPtrList);
 Obj*          copy_obj(Obj* obj);
+void          recycleMem(EnvPtr env);
+void          mark(EnvPtr obj);
+void          mark(Obj* obj);
+void          sweep();
 
 typedef enum{
              VAL_BOOL,
              VAL_NIL,
              VAL_NUMBER,
+             VAL_String,
+             VAL_Procedure,
+             VAL_Primitive,
+             VAL_Tuple,
+             VAL_List,
+             VAL_Ast,
              VAL_OBJ
 } val_type;
 
@@ -121,6 +154,14 @@ struct Value{
     :type(VAL_BOOL){as.boolean = boolean;}
   Value(double number)
     :type(VAL_NUMBER){as.number = number;}
+#define OBJ2VAL(T,m)                               \
+  Value(Obj##T *obj):type(VAL_##T){as.obj = obj;immutable=m;}
+  OBJ2VAL(String,false);
+  OBJ2VAL(Procedure,true);
+  OBJ2VAL(Primitive,true);
+  OBJ2VAL(Tuple,false);
+  OBJ2VAL(List,true);
+  OBJ2VAL(Ast,false);
   Value(Obj *obj)
     :type(VAL_OBJ){as.obj = obj;}
   Value(Value const& v){
@@ -131,6 +172,12 @@ struct Value{
       case VAL_NUMBER:
         as = v.as;
         break;
+      case VAL_String:
+      case VAL_Procedure:
+      case VAL_Primitive:
+      case VAL_Tuple:
+      case VAL_List:
+      case VAL_Ast:
       case VAL_OBJ:{
         auto o = v.as.obj;
         as.obj = copy_obj(o);
@@ -139,6 +186,7 @@ struct Value{
     }
   }
   uint8_t type;
+  bool    immutable = false;
   union{
     bool   boolean;
     double number;
@@ -159,7 +207,6 @@ class Environment{
   ValPtr* get(string);
   void   set(string,const ValPtr&);
   void   show();
- private:
   EnvPtr outer;
   std::unordered_map<string, ValPtr> map;
 };

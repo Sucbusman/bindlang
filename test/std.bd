@@ -20,8 +20,16 @@ foldr = \f i t
            h(-(n 1) f(take(t n) a)))
         h(-(len(t) 1) i))
 
+range = \n
+ ->begin(h=\c t->
+         if(eq(c n)
+            t
+            h(+(c 1) +(t <c>)))
+         h(0 <>))
+
 #test
 t = < 1 2 3 4 >
 map(\x->print(+(x 1)) t)
 print("foldl:"foldl(- 15 t))
 print("foldr:"foldr(- 15 t))
+print("range(5):"range(5))

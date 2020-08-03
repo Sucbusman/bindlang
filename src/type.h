@@ -7,9 +7,11 @@
 
 namespace bindlang{
 
-using  TokenList = std::vector<Token>;
 struct Expr;
 struct Value;
+struct ObjList;
+using  TokenList = std::vector<Token>;
+using  ObjListPtr = ObjList*;
 using  ExprPtr = std::unique_ptr<Expr>;
 using  ExprPtrList = std::vector<ExprPtr>;
 using  ValPtr = std::shared_ptr<Value>;

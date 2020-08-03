@@ -1,4 +1,5 @@
 #include <cstring>
+#include <memory>
 #include "interpreter.h"
 #include "ast.h"
 #include "type.h"
@@ -80,17 +81,24 @@ void Interpreter::standardEnvironment(){
   PRIM2("=>",1,Pipe,true);
   PRIM("'",0,Quote);
 
+  PRIM("empty?",1,isEmpty);
+
   PRIM("take",2,Take);
   PRIM("len",1,Length);
   PRIM("set!",2,Set);
   PRIM("push!",2,Push);
   PRIM("pop!",1,Pop);
 
+  PRIM("cons",2,Cons);
+  PRIM("hd",1,Head);
+  PRIM("tl",1,Tail);
+
   PRIM("print",1,Print);
 
   PRIM("env",0,InspectEnv);
   PRIM("debug",0,Debug);
   PRIM("garbage",0,Garbage);
+  PRIM("gc",0,Gc);
 #undef VALUE
 #undef inifinity
 #undef BINARY
@@ -134,6 +142,7 @@ ValPtr Interpreter::eval(ExprPtr expr){
     case FUNC:     return evalFunc(expr->clone());break;
     case CALL:     return evalCall(move(expr));break;
     case TUPLE:    return evalTuple(move(expr));break;
+    case LIST:     return evalList(move(expr));break;
     case EOF:      error_num++;return nullptr;
     default:
       error("Unreachable");
@@ -163,12 +172,23 @@ ValPtr Interpreter::evalTuple(ExprPtr expr){
   return make_shared<Value>(make_obj(c));
 }
 
+ValPtr Interpreter::evalList(ExprPtr expr){
+  auto e = rcast(ExprList*,expr);
+  auto lst = move(e->container);
+  ObjList* last = make_obj(nullptr,nullptr);
+  for(auto it=lst.rbegin();it!=lst.rend();it++){
+    last = make_obj(eval(move(*it)),last);
+  }
+  return make_shared<Value>(last);
+}
+
 ValPtr Interpreter::evalId(ExprPtr expr){
   auto id = rcast(ExprId*,expr);
   auto tok = id->id;
   auto v = envs.top()->get(tok.literal);
   if(v == nullptr){
     error(tok.literal<<" not defined.");
+    return nullptr;
   }
   return *v;
 }
@@ -179,14 +199,15 @@ ValPtr Interpreter::evalDefine(ExprPtr expr){
   auto val = eval(move(def->expr));
   check_error();
   auto v = envs.top()->get(tok.literal);
+  auto copy = make_shared<Value>(*val);
   if(v){
     //change value exists in outer environment
-    *v = make_shared<Value>(*val);
+    *v = copy;
   }else{
-    //define at top environment
-    envs.top()->set(tok.literal,val);
+    //define at nearest environment
+    envs.top()->set(tok.literal,copy);
   }
-  return val;
+  return copy;
 }
 
 ValPtr Interpreter::evalFunc(ExprPtr expr){
@@ -239,9 +260,9 @@ ValPtr Interpreter::evalCallPrim(ObjPrimitive* prim,ExprPtrList& args,ExprPtrLis
 ValPtr Interpreter::evalCallProc(ObjProcedure* proc,ExprPtrList& args,ExprPtrList& extra){
   auto body = (proc->body)->clone();
   auto new_env = make_shared<Environment>(proc->closure);
-  auto arity = proc->params.size();
+  int arity = (int)proc->params.size();
   auto left_arity = arity - args.size();
-  if(args.size() > arity){
+  if((int)args.size() > arity){
     call_error(" Expect at most "<<arity<<" args.");
   }
   for(int i=0;i<(int)args.size();i++){
@@ -361,9 +382,10 @@ ValPtr Interpreter::Eq(ExprPtrList args){
             boolean = osl->s==osr->s;
             break;
           }
-          case objType::Tuple:
           case objType::Procedure:
           case objType::Primitive:
+          case objType::Tuple:
+          case objType::List:
           case objType::Ast:
             boolean = objl == r->as.obj;
             break;
@@ -423,12 +445,9 @@ ValPtr Interpreter::Or(ExprPtrList args){
 // control flow
 ValPtr Interpreter::Begin(ExprPtrList args){
   ValPtr ans;
-  auto new_env = make_shared<Environment>(envs.top());
-  envs.push(new_env);
   for(auto const& arg :args){
     ans = eval(arg->clone());
   }
-  envs.pop();
   return ans;
 }
 
@@ -565,6 +584,65 @@ ValPtr Interpreter::Pop(ExprPtrList args){
   return v;
 }
 
+// list
+ValPtr Interpreter::isEmpty(ExprPtrList args){
+  auto v = eval(move(args[0]));
+  Expect(v->type,VAL_OBJ);
+  auto o = v->as.obj;
+  switch(o->type){
+    case objType::Tuple:{
+      auto tup = cast(ObjTuple*,o);
+      return make_shared<Value>(tup->container.size()==0);
+    }
+    case objType::List:{
+      auto lst = cast(ObjList*,o);
+      return make_shared<Value>(lst->tail==nullptr);
+    }
+    default:
+      break;
+  }
+  error("Expect tuple or list!");
+  return nullptr;
+}
+
+ValPtr Interpreter::Cons(ExprPtrList args){
+  auto head = eval(move(args[0]));
+  auto v = eval(move(args[1]));
+  Expect(v->type,VAL_OBJ);
+  auto o = v->as.obj;
+  Expect(o->type,objType::List);
+  auto tail = cast(ObjList*,o);
+  return make_shared<Value>(make_obj(head,tail));
+}
+
+ValPtr Interpreter::Head(ExprPtrList args){
+  auto v = eval(move(args[0]));
+  ValPtr* phead;
+  ObjListPtr* ptail;
+  if(not takeList(v,phead,ptail)){
+    error("Expect a list");
+    return nullptr;
+  }
+  // return part of list
+  return *phead;
+}
+
+ValPtr Interpreter::Tail(ExprPtrList args){
+  auto v = eval(move(args[0]));
+  ValPtr* phead;
+  ObjListPtr* ptail;
+  if(not takeList(v,phead,ptail)){
+    error("Expect a list");
+    return nullptr;
+  }
+  if(*ptail){
+    // return part of list
+    return make_shared<Value>(*ptail);
+  }else{
+    return nullptr;
+  }
+}
+
 // IO
 ValPtr Interpreter::Print(ExprPtrList args){
   for(const auto &arg : args){
@@ -599,6 +677,11 @@ ValPtr Interpreter::Garbage(ExprPtrList args){
     cout<<endl;
     p = p->next;
   }
+  return nullptr;
+}
+
+ValPtr Interpreter::Gc(ExprPtrList args){
+  recycleMem(envs.top());
   return nullptr;
 }
 

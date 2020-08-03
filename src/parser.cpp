@@ -172,11 +172,17 @@ ExprPtr Parser::parseTuple(){
 ExprPtr Parser::parseList(){
   //eg.   [ 1 2 3 expr...]
   //      ^
-  // ExprPtrBtree btree;
-  while(token_.type != ']'){
-    //parse();
+  ExprPtrList container;
+  Token tok;
+  while(tok = peekNext(),tok.type != ']'){
+    if(tok.type == tok_eof){
+      error("Expect closing ')'");
+      return nullptr;
+    }
+    container.push_back(parseExpr());
   }
-  return nullptr;
+  next();//go to closing ']'
+  return make_unique<ExprList>(move(container));
 }
 
 ExprPtr Parser::parseDefine(){
@@ -212,12 +218,13 @@ ExprPtr Parser::parseCall(ExprPtr callee){
     tok = peekNext();
   MIDDLE:
     //some token can appear first
-    if(tok.type == tok_id or
-       tok.type == tok_num or
-       tok.type == tok_str or
-       tok.type == '<'){
-      continue;
-    }else if(tok.type == ')'){
+    //if(tok.type == tok_id or
+    //   tok.type == tok_num or
+    //   tok.type == tok_str or
+    //   tok.type == '<'){
+    //  continue;
+    //}
+    if(tok.type == ')'){
       break;
     }else if(tok.type == '|'){
       if(delim){
@@ -227,10 +234,11 @@ ExprPtr Parser::parseCall(ExprPtr callee){
         delim = true;
         next();//eat '|'
       }
-    }else{
-      error("Expect sub expression or ')' in procedure call ");
-      return nullptr;
     }
+    //else{
+    //  error("Expect sub expression or ')' in procedure call ");
+    //  return nullptr;
+    //}
   }
  FINAL:
   next();//eat ')'

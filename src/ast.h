@@ -23,6 +23,7 @@ typedef enum{
   FUNC,
   CALL,
   TUPLE,
+  LIST,
   QUOTE
 } expr_type;
 
@@ -99,7 +100,7 @@ struct ExprDefine : Expr{
 
 struct ExprFunc : Expr{
   TokenList params;
-  ExprPtr   body;
+  ExprPtr body;
   
   ExprFunc(TokenList params,ExprPtr body)
     : Expr(FUNC),params(std::move(params)),body(std::move(body)){}
@@ -154,6 +155,24 @@ struct ExprTuple : Expr{
 
   void show() override {
     cout<<BLUE("<Expr ")<<"Tuple "<<endl;
+    cout<<setw(10)<<std::left<<"  container:"<<endl;
+    for(auto &i:container){
+      cout<<setw(14)<<" ";i->show();cout<<endl;
+    }
+    cout<<BLUE(" >")<<endl;
+  }
+};
+
+struct ExprList : Expr{
+  ExprPtrList container;
+  
+  ExprList(ExprPtrList container)
+    : Expr(LIST),container(std::move(container)){}
+
+  ExprPtr clone() override;
+
+  void show() override {
+    cout<<BLUE("<Expr ")<<"List "<<endl;
     cout<<setw(10)<<std::left<<"  container:"<<endl;
     for(auto &i:container){
       cout<<setw(14)<<" ";i->show();cout<<endl;

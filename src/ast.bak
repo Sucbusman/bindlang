@@ -21,7 +21,6 @@ typedef enum{
   ID,
   DEFINE,
   FUNC,
-  SYSCALL,
   CALL,
   TUPLE,
   QUOTE
@@ -100,7 +99,7 @@ struct ExprDefine : Expr{
 
 struct ExprFunc : Expr{
   TokenList params;
-  ExprPtr body;
+  ExprPtr   body;
   
   ExprFunc(TokenList params,ExprPtr body)
     : Expr(FUNC),params(std::move(params)),body(std::move(body)){}
@@ -115,22 +114,6 @@ struct ExprFunc : Expr{
     }
     cout<<setw(10)<<std::left<<"  body:"<<endl;
     cout<<setw(14)<<' ';body->show();cout<<endl;
-    cout<<BLUE(" >")<<endl;
-  }
-};
-
-struct ExprSysCall : Expr{
-  PrimFunc func;
-  
-  ExprSysCall(PrimFunc func)
-    : Expr(SYSCALL),func(func){}
-
-  ExprPtr clone() override;
-
-  void show() override {
-    cout<<BLUE("<Expr ")<<"SysCall "<<endl;
-    cout<<setw(10)<<std::left<<"  func:"<<endl;
-    cout<<setw(14)<<" primitive "<<endl;
     cout<<BLUE(" >")<<endl;
   }
 };

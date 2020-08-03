@@ -16,13 +16,13 @@ class Interpreter{
  private:
   bool   interrupt = false;
   int    error_num=0;
-  stack<EnvPtr> envs;
   EnvPtr toplevel;
 
   void   standardEnvironment();
   void   debugger(ExprPtr expr);
   ValPtr evalAtom(ExprPtr expr);
   ValPtr evalTuple(ExprPtr expr);
+  ValPtr evalList(ExprPtr expr);
   ValPtr evalId(ExprPtr expr);
   ValPtr evalDefine(ExprPtr expr);
   ValPtr evalFunc(ExprPtr expr);
@@ -55,12 +55,19 @@ class Interpreter{
   ValPtr Pipe(ExprPtrList args,bool);
   ValPtr Quote(ExprPtrList args);
 
-  // tuple
+  // tuple:mutable flat array,random access
+  ValPtr isEmpty(ExprPtrList args);
+
   ValPtr Take(ExprPtrList args);
   ValPtr Length(ExprPtrList args);
   ValPtr Set(ExprPtrList args);
   ValPtr Push(ExprPtrList args);
   ValPtr Pop(ExprPtrList args);
+
+  // list:immutable,binary tree,easy to recurse
+  ValPtr Cons(ExprPtrList args);
+  ValPtr Head(ExprPtrList args);
+  ValPtr Tail(ExprPtrList args);
 
   // IO
   ValPtr Print(ExprPtrList args);
@@ -69,6 +76,7 @@ class Interpreter{
   ValPtr InspectEnv(ExprPtrList args);
   ValPtr Debug(ExprPtrList args);
   ValPtr Garbage(ExprPtrList args);
+  ValPtr Gc(ExprPtrList args);
 };
 
   
