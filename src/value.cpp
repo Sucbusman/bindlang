@@ -144,7 +144,7 @@ void mark(Obj* obj){
       case objType::Tuple:{
         auto o = cast(ObjTuple*,obj);
         for(auto & val:o->container){
-          if(val->type==VAL_OBJ){
+          if(val->isObj()){
             mark(val->as.obj);
           }
         }
@@ -152,7 +152,7 @@ void mark(Obj* obj){
       }
       case objType::List:{
         auto o = cast(ObjList*,obj);
-        if(o->head->type==VAL_OBJ){
+        if(o->head->isObj()){
           mark(o->head->as.obj);
         }
         if(o->tail){
@@ -167,7 +167,7 @@ void mark(EnvPtr env){
   while(env){
     for(auto &pair :env->map){
       auto val= pair.second;
-      if(val->type == VAL_OBJ){
+      if(val->isObj()){
         mark(val->as.obj);
       }
     }
@@ -234,26 +234,25 @@ bool takeNumber(ValPtr v,double*& ans){
   return true;
 }
 
-#define CHECK(T1,T2,T3)                       \
-  if(v->type != T1) return false;             \
-  auto tmp = v->as.obj;                       \
-  if(tmp->type != objType::T2) return false;  \
-  auto obj = dynamic_cast<T3*>(tmp);
+#define CHECK(T,DST)                           \
+  if(v->type != VAL_##T) return false;       \
+  auto tmp___ = v->as.obj;                   \
+  auto DST = dynamic_cast<Obj##T*>(tmp___);
 
 bool takeString(ValPtr v,string*& ans){
-  CHECK(VAL_OBJ,String,ObjString);
+  CHECK(String,obj);
   ans = &obj->s;
   return true;
 }
 
 bool takeTuple(ValPtr v,ValPtrList*& ans){
-  CHECK(VAL_OBJ,Tuple,ObjTuple);
+  CHECK(Tuple,obj);
   ans = &obj->container;
   return true;
 }
 
 bool takeList(ValPtr v,ValPtr*& head,ObjListPtr*& tail){
-  CHECK(VAL_OBJ,List,ObjList);
+  CHECK(List,obj);
   head = &obj->head;
   tail = &obj->tail;
   return true;
@@ -275,45 +274,25 @@ void printVal(ValPtr val) {
     case VAL_NUMBER:
       cout << val->as.number;
       break;
-    case VAL_OBJ: {
-      auto obj = val.get()->as.obj;
-      switch (obj->type) {
-        case objType::String: {
-          auto o = dynamic_cast<ObjString *>(obj);
-          cout<<o->s;
-          break;
-        }
-        case objType::Procedure: {
-          auto o = dynamic_cast<ObjProcedure *>(obj);
-          o->show();
-          break;
-        }
-        case objType::Primitive: {
-          auto o = dynamic_cast<ObjPrimitive *>(obj);
-          o->show();
-          break;
-        }
-        case objType::Tuple: {
-          auto o = dynamic_cast<ObjTuple *>(obj);
-          o->show();
-          break;
-        }
-        case objType::List:{
-          auto o = dynamic_cast<ObjList *>(obj);
-          o->show();
-          break;
-        }
-        case objType::Ast:{
-          auto o = dynamic_cast<ObjAst *>(obj);
-          o->show();
-          break;
-        }
-        default:
-          break;
-      }
+    case VAL_String:{
+      auto o = cast(ObjString*,val.get()->as.obj);
+      cout<<o->s;
       break;
     }
-  }
+#define SHOW(T)\
+    case VAL_##T:{\
+      auto o=cast(Obj##T*,val.get()->as.obj);\
+      o->show();break;                       \
+    }
+    SHOW(Procedure)
+    SHOW(Primitive)
+    SHOW(List)
+    SHOW(Tuple)
+    SHOW(Ast)
+    default:
+        break;
+    }
+#undef SHOW
 }
 
 void ObjTuple::show(){

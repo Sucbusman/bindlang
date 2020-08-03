@@ -135,16 +135,15 @@ void          mark(Obj* obj);
 void          sweep();
 
 typedef enum{
-             VAL_BOOL,
              VAL_NIL,
+             VAL_BOOL,
              VAL_NUMBER,
              VAL_String,
              VAL_Procedure,
              VAL_Primitive,
              VAL_Tuple,
              VAL_List,
-             VAL_Ast,
-             VAL_OBJ
+             VAL_Ast
 } val_type;
 
 struct Value{
@@ -162,10 +161,9 @@ struct Value{
   OBJ2VAL(Tuple,false);
   OBJ2VAL(List,true);
   OBJ2VAL(Ast,false);
-  Value(Obj *obj)
-    :type(VAL_OBJ){as.obj = obj;}
   Value(Value const& v){
     type = v.type;
+    immutable = v.immutable;
     switch(type){
       case VAL_BOOL:
       case VAL_NIL:
@@ -177,13 +175,15 @@ struct Value{
       case VAL_Primitive:
       case VAL_Tuple:
       case VAL_List:
-      case VAL_Ast:
-      case VAL_OBJ:{
+      case VAL_Ast:{
         auto o = v.as.obj;
         as.obj = copy_obj(o);
         break;
       }
     }
+  }
+  bool isObj(){
+    return type>VAL_NUMBER; 
   }
   uint8_t type;
   bool    immutable = false;

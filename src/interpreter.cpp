@@ -198,16 +198,23 @@ ValPtr Interpreter::evalDefine(ExprPtr expr){
   auto tok = def->id;
   auto val = eval(move(def->expr));
   check_error();
-  auto v = envs.top()->get(tok.literal);
-  auto copy = make_shared<Value>(*val);
-  if(v){
-    //change value exists in outer environment
-    *v = copy;
+  auto pv = envs.top()->get(tok.literal);
+  if(pv){
+    if((*pv)->immutable){
+      *pv = val;
+      return val;
+    }else{
+      auto copy = make_shared<Value>(*val);
+      //change value exists in outer environment
+      *pv = copy;
+      return copy;
+    }
   }else{
+    auto copy = make_shared<Value>(*val);
     //define at nearest environment
     envs.top()->set(tok.literal,copy);
+    return copy;
   }
-  return copy;
 }
 
 ValPtr Interpreter::evalFunc(ExprPtr expr){
@@ -226,14 +233,13 @@ ValPtr Interpreter::evalCall(ExprPtr expr){
   check_error();
   auto args   = move(call->args);
   auto extra  = move(call->extra);
-  if(callee and callee->type == VAL_OBJ){
-    auto obj = callee->as.obj;
-    if(obj->type == objType::Primitive){
-      auto prim = dynamic_cast<ObjPrimitive*>(callee->as.obj);
+  if(callee){
+    if(callee->type == VAL_Procedure){
+      auto prim = cast(ObjProcedure*, callee->as.obj);
+      return evalCallProc(prim, args, extra);
+    }else if(callee->type == VAL_Primitive){
+      auto prim = cast(ObjPrimitive*, callee->as.obj);
       return evalCallPrim(prim, args, extra);
-    }else if(obj->type == objType::Procedure){
-      auto proc = dynamic_cast<ObjProcedure*>(callee->as.obj);
-      return evalCallProc(proc, args, extra);
     }
   }
   call_error(" can not be called.");
@@ -323,13 +329,18 @@ ValPtr Interpreter::calcu2(ExprPtrList args,function<T*(T&,T&)> op){
   for(const auto & arg:args){
     auto v = eval(arg->clone());
     check_error();
-    Expect(v->type,VAL_OBJ);
+    //Expect(v->type,VAL_##T);
     T* o = cast(T*,v->as.obj);
-    if(first){
-      ans = o;
-      first = false;
+    if(o){
+      if(first){
+        ans = o;
+        first = false;
+      }else{
+        ans = op(*ans,*o);
+      }  
     }else{
-      ans = op(*ans,*o);
+      error("Expect xxx");
+      return nullptr;
     }
   }
   return make_shared<Value>(ans);              
@@ -341,16 +352,10 @@ ValPtr Interpreter::Plus(ExprPtrList args){
   switch(firstval->type){
     case VAL_NUMBER:
       return calculator(move(args),0,[](double l,double r){return l+r;});
-    case VAL_OBJ:{
-      auto o = firstval->as.obj;
-      switch(o->type){
-        case objType::String:
-          return calcu2<ObjString>(move(args),StringPlus);
-        case objType::Tuple:
-          return calcu2<ObjTuple>(move(args),TuplePlus);
-        default: goto E;
-      }
-    }
+    case VAL_String:
+      return calcu2<ObjString>(move(args),StringPlus);
+    case VAL_Tuple:
+      return calcu2<ObjTuple>(move(args),TuplePlus);
     default: goto E;
   }
  E:
@@ -373,26 +378,21 @@ ValPtr Interpreter::Eq(ExprPtrList args){
       case VAL_NUMBER:
         boolean = l->as.number == r->as.number;
         break;
-      case VAL_OBJ:{
-        auto objl = l->as.obj;
-        switch(objl->type){
-          case objType::String:{
-            auto osl = cast(ObjString*,objl);
-            auto osr = cast(ObjString*,r->as.obj);
-            boolean = osl->s==osr->s;
-            break;
-          }
-          case objType::Procedure:
-          case objType::Primitive:
-          case objType::Tuple:
-          case objType::List:
-          case objType::Ast:
-            boolean = objl == r->as.obj;
-            break;
-        }
+      case VAL_String:{
+        auto osl = cast(ObjString*,l->as.obj);
+        auto osr = cast(ObjString*,r->as.obj);
+        boolean = osl->s==osr->s;
+        break;
+      }
+      case VAL_Procedure:
+      case VAL_Primitive:
+      case VAL_Tuple:
+      case VAL_List:
+      case VAL_Ast:
+        boolean = l->as.obj == r->as.obj;
+        break;
       }
     }
-  }
   return std::make_shared<Value>(boolean);
 }
 
@@ -544,7 +544,7 @@ ValPtr Interpreter::Take(ExprPtrList args){
   TUPLE_PRELUDE(args[0]);
   NUMBER_PRELUDE(args[1]);
   int idx = (int)(*pn);
-  if(idx<0 or idx>(int)pc->size()){
+  if(idx<0 or idx>=(int)pc->size()){
     error("index out of range.");
     return nullptr;
   }
@@ -587,19 +587,20 @@ ValPtr Interpreter::Pop(ExprPtrList args){
 // list
 ValPtr Interpreter::isEmpty(ExprPtrList args){
   auto v = eval(move(args[0]));
-  Expect(v->type,VAL_OBJ);
-  auto o = v->as.obj;
-  switch(o->type){
-    case objType::Tuple:{
-      auto tup = cast(ObjTuple*,o);
-      return make_shared<Value>(tup->container.size()==0);
+  if(v->type == VAL_Tuple or v->type == VAL_List){
+    auto o = v->as.obj;
+    switch(o->type){
+      case objType::Tuple:{
+        auto tup = cast(ObjTuple*,o);
+        return make_shared<Value>(tup->container.size()==0);
+      }
+      case objType::List:{
+        auto lst = cast(ObjList*,o);
+        return make_shared<Value>(lst->tail==nullptr);
+      }
+      default:
+        break;
     }
-    case objType::List:{
-      auto lst = cast(ObjList*,o);
-      return make_shared<Value>(lst->tail==nullptr);
-    }
-    default:
-      break;
   }
   error("Expect tuple or list!");
   return nullptr;
@@ -608,10 +609,8 @@ ValPtr Interpreter::isEmpty(ExprPtrList args){
 ValPtr Interpreter::Cons(ExprPtrList args){
   auto head = eval(move(args[0]));
   auto v = eval(move(args[1]));
-  Expect(v->type,VAL_OBJ);
-  auto o = v->as.obj;
-  Expect(o->type,objType::List);
-  auto tail = cast(ObjList*,o);
+  Expect(v->type,VAL_List);
+  auto tail = cast(ObjList*,v->as.obj);
   return make_shared<Value>(make_obj(head,tail));
 }
 
