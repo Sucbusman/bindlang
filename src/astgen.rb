@@ -41,10 +41,13 @@ using TokenList = std::vector<Token>;
 
 struct Expr {
   int type=-2;
+  bool protect = false;
   ~Expr() = default;
   virtual void    show() =0;
   virtual ExprPtr clone()=0;
   Expr(int type):type(type){};
+  Expr(int type,bool protect)
+    :type(type),protect(protect){};
 };
 
 
@@ -88,10 +91,15 @@ struct Expr#{name} : Expr{
   Expr#{name}(#{members.join(',')})
     : Expr(#{name.upcase}),#{init_list members}{}
 
+  Expr#{name}(#{members.join(',')},bool protect)
+    : Expr(#{name.upcase},protect),#{init_list members}{}
+
   ExprPtr clone() override;
 
   void show() override {
-    cout<<BLUE("<Expr ")<<"#{name} "<<endl;
+    cout<<BLUE("<Expr ")<<"#{name} ";
+    if(protect) cout<<"+";
+    cout<<endl;
     #{members.map do |member|
         type,id = member.split(' ')
         'cout<<setw(10)<<std::left<<"  '+id+':"<<endl;'+

@@ -1,4 +1,5 @@
 #include "parser.h"
+#include <memory>
 
 using namespace bindlang;
 using std::make_unique;
@@ -28,6 +29,15 @@ bool Parser::fine(){
 
 bool Parser::atEnd(){
   return future.empty() and token_.type == tok_eof;
+}
+
+bool Parser::use_protect(){
+  //one shot, quote can only proctect one expression
+  bool now = protect;
+  if(now){
+    protect = not protect;
+  }
+  return now;
 }
 
 void Parser::next(){
@@ -65,6 +75,7 @@ ExprPtr Parser::parseExpr(){
     return nullptr;
   }
   switch(token_.type){
+    case '\'':    protect = true;return parseExpr();
     case '\\':    return parseFunc();
     case tok_str:
     case tok_num: return parseAtom();
@@ -76,6 +87,7 @@ ExprPtr Parser::parseExpr(){
       switch(tok.type){
         case '=':           return parseDefine();
         case '(':           return parseCall();
+        case '.':           return parseDot();
         default:
           return parseId();
       }
@@ -153,6 +165,20 @@ ExprPtr Parser::parseAtom(){
   return nullptr;
 }
 
+ExprPtr Parser::parseDefine(){
+  Token id = token_;
+  //eg. id = 3
+  //     ^
+  next();//^
+  ExprPtr expr = parseExpr();
+  return make_unique<ExprDefine>(id,move(expr),use_protect());
+}
+
+ExprPtr Parser::parseId(){
+  verifyId(token_);
+  return make_unique<ExprId>(token_);
+}
+
 ExprPtr Parser::parseTuple(){
   //eg.   < 1 2 3 expr...>
   //      ^
@@ -166,7 +192,7 @@ ExprPtr Parser::parseTuple(){
     container.push_back(parseExpr());
   }
   next();//go to closing '>'
-  return make_unique<ExprTuple>(move(container));
+  return make_unique<ExprTuple>(move(container),use_protect());
 }
 
 ExprPtr Parser::parseList(){
@@ -182,16 +208,7 @@ ExprPtr Parser::parseList(){
     container.push_back(parseExpr());
   }
   next();//go to closing ']'
-  return make_unique<ExprList>(move(container));
-}
-
-ExprPtr Parser::parseDefine(){
-  Token id = token_;
-  //eg. id = 3
-  //     ^
-  next();//^
-  ExprPtr expr = parseExpr();
-  return make_unique<ExprDefine>(id,move(expr));
+  return make_unique<ExprList>(move(container),use_protect());
 }
 
 ExprPtr Parser::parseCall(ExprPtr callee){
@@ -217,13 +234,6 @@ ExprPtr Parser::parseCall(ExprPtr callee){
     }
     tok = peekNext();
   MIDDLE:
-    //some token can appear first
-    //if(tok.type == tok_id or
-    //   tok.type == tok_num or
-    //   tok.type == tok_str or
-    //   tok.type == '<'){
-    //  continue;
-    //}
     if(tok.type == ')'){
       break;
     }else if(tok.type == '|'){
@@ -235,10 +245,6 @@ ExprPtr Parser::parseCall(ExprPtr callee){
         next();//eat '|'
       }
     }
-    //else{
-    //  error("Expect sub expression or ')' in procedure call ");
-    //  return nullptr;
-    //}
   }
  FINAL:
   next();//eat ')'
@@ -250,9 +256,25 @@ ExprPtr Parser::parseCall(ExprPtr callee){
   return call; 
 }
 
-ExprPtr Parser::parseId(){
-  verifyId(token_);
-  return make_unique<ExprId>(token_);
+ExprPtr Parser::parseDot(ExprPtr object){
+  if(not object){
+    object = make_unique<ExprId>(token_);
+  }
+  ExprPtrList args;
+  args.push_back(move(object));
+  //eg. person.age.plus-one
+  //         ^
+  next();//   ^
+  auto callee = parseExpr();
+  auto tok = peekNext();
+  ExprPtrList extra;
+  auto call = make_unique<ExprCall>(move(callee),
+                                    move(args),move(extra));
+  if(tok.type == '.'){
+    return parseDot(move(call));
+  }else{
+    return call;
+  }
 }
 
 #undef CHECKINT

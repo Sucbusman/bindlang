@@ -84,9 +84,16 @@ ObjList* make_obj(ValPtr head,ObjListPtr tail){
   return o;
 }
 
-ObjAst* make_obj(ExprPtrList container){
+ObjAst* make_obj(ExprPtr expr){
   ifgc();
-  auto o = new ObjAst(move(container),objchain);
+  auto o = new ObjAst(move(expr),objchain);
+  objchain = o;
+  return o;
+}
+
+ObjAst* make_obj(Expr* expr){
+  ifgc();
+  auto o = new ObjAst(expr,objchain);
   objchain = o;
   return o;
 }
@@ -96,6 +103,10 @@ Obj* copy_obj(Obj* obj){
     case objType::String:{
       auto obj2 = cast(ObjString*,obj);
       return make_obj(obj2->s);
+    }
+    case objType::Ast:{
+      auto obj2 = cast(ObjAst*,obj);
+      return make_obj(obj2->expr);
     }
     case objType::Procedure:{
       auto obj2 = cast(ObjProcedure*,obj);
@@ -114,14 +125,6 @@ Obj* copy_obj(Obj* obj){
       auto obj2 = cast(ObjList*,obj);
       return make_obj(make_shared<Value>(*obj2->head),obj2->tail);
     }
-    case objType::Ast:{
-      auto obj2 = cast(ObjAst*,obj);
-      ExprPtrList newc;
-      for(auto const& expr:obj2->container){
-        newc.push_back(expr->clone());
-      }
-      return make_obj(move(newc));
-    }
   }
   return nullptr;
 }
@@ -133,8 +136,8 @@ void mark(Obj* obj){
     obj->flag = gc::USE;
     switch(obj->type){
       case objType::String:
-      case objType::Primitive:
       case objType::Ast:
+      case objType::Primitive:
         break;
       case objType::Procedure:{
         auto o = cast(ObjProcedure*,obj);
@@ -324,9 +327,7 @@ void ObjList::show(){
 
 void ObjAst::show(){
   cout<<BLUE("<Ast ");
-  for(auto const& val:container){
-    val->show();
-  }
+  expr->show();
   cout<<BLUE(" >");
 }
 

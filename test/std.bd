@@ -27,9 +27,13 @@ range = \n
             h(+(c 1) +(t <c>)))
          h(0 <>))
 
++1 = \x->+(x 1)
+
 #test
 t = < 1 2 3 4 >
 map(\x->print(+(x 1)) t)
 print("foldl:"foldl(- 15 t))
 print("foldr:"foldr(- 15 t))
-print("range(5):"range(5))
+\t->while(lt(i len(t))
+          print(take(t i))
+          i=+1(i)|i=0)(range(5))

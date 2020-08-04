@@ -11,7 +11,8 @@ class Parser {
  public:
   Parser(Scanner &scanner):
     scanner(scanner),
-    future(law::fix_queue<Token>(5)){
+    future(law::fix_queue<Token>(5)),
+    protect(false){
     scanner.reset();
   }
   void reset(); // namespace bindlang
@@ -24,6 +25,8 @@ class Parser {
   Scanner& scanner;
   int     error_num;
   bool    error(const char *message);
+  bool    use_protect();
+
   void    next();
   Token   borrow();
   Token   peekNext();
@@ -33,15 +36,17 @@ class Parser {
 
   ExprPtr parseExpr();
   ExprPtr parseAtom();
+  ExprPtr parseDefine();
+  ExprPtr parseId();
   ExprPtr parseList();
   ExprPtr parseTuple();
-  ExprPtr parseId();
-  ExprPtr parseDefine();
   ExprPtr parseFunc();
   ExprPtr parseCall(ExprPtr callee=nullptr);
+  ExprPtr parseDot(ExprPtr object=nullptr);
 
   Token token_;
   law::fix_queue<Token> future;
+  bool  protect;
 };
 
 } // namespace bindlang

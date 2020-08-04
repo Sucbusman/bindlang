@@ -163,11 +163,22 @@ ValPtr Interpreter::evalAtom(ExprPtr expr){
   return make_shared<Value>();
 }
 
+inline ValPtr expr2val(ExprPtr expr){
+  auto e = expr.release();
+  return make_shared<Value>(make_obj(e));
+}
+
 ValPtr Interpreter::evalTuple(ExprPtr expr){
   auto tup = rcast(ExprTuple*,expr);
   auto c = ValPtrList();
-  for(auto & e:tup->container){
-    c.push_back(eval(move(e)));
+  if(tup->protect){
+    for(auto & e:tup->container){
+      c.push_back(expr2val(move(e)));
+    }
+  }else{
+    for(auto & e:tup->container){
+      c.push_back(eval(move(e)));
+    }
   }
   return make_shared<Value>(make_obj(c));
 }
@@ -176,8 +187,14 @@ ValPtr Interpreter::evalList(ExprPtr expr){
   auto e = rcast(ExprList*,expr);
   auto lst = move(e->container);
   ObjList* last = make_obj(nullptr,nullptr);
-  for(auto it=lst.rbegin();it!=lst.rend();it++){
-    last = make_obj(eval(move(*it)),last);
+  if(e->protect){
+    for(auto it=lst.rbegin();it!=lst.rend();it++){
+      last = make_obj(expr2val(move(*it)),last);
+    }
+  }else{
+    for(auto it=lst.rbegin();it!=lst.rend();it++){
+      last = make_obj(eval(move(*it)),last);
+    }
   }
   return make_shared<Value>(last);
 }
@@ -467,7 +484,9 @@ ValPtr Interpreter::If(ExprPtrList args){
 ValPtr Interpreter::While(ExprPtrList args){
   ValPtr result = nullptr;
   while(truthy(eval(args[0]->clone()))){
-    result = eval(args[1]->clone());
+    for(auto & arg :args){
+      result = eval(arg->clone());
+    }
   }
   return result;
 }
@@ -520,7 +539,10 @@ ValPtr Interpreter::Pipe(ExprPtrList args,bool left_to_right){
 }
 
 ValPtr Interpreter::Quote(ExprPtrList args){
-  return make_shared<Value>(make_obj(move(args)));
+  for(auto & arg:args){
+    auto ast = make_shared<Value>(make_obj(move(arg)));
+  }
+  return nullptr;
 }
 
 // tuple

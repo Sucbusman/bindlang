@@ -106,11 +106,14 @@ ObjTuple* TuplePlus(ObjTuple& l,ObjTuple& r);
 ObjTuple* operator+ (ObjTuple& l,ObjTuple& r);
 
 struct ObjAst : Obj{
-  ObjAst(ExprPtrList container,Obj *next)
-    :Obj(objType::Ast,next),container(move(container)){}
-  ExprPtrList container;
+  ObjAst(ExprPtr expr,Obj *next)
+    :Obj(objType::Ast,next),expr(expr.release()){}
+  ObjAst(Expr* expr,Obj *next)
+    :Obj(objType::Ast,next),expr(expr){}
+  Expr* expr;
   void show() override;
 };
+
 /* extract cpp value from Value */
 
 bool takeBool(ValPtr v,bool*& ans);
@@ -127,7 +130,8 @@ ObjProcedure* make_obj(EnvPtr,TokenList&,ExprPtr&);
 ObjPrimitive* make_obj(string,int,PrimFunc);
 ObjTuple*     make_obj(ValPtrList);
 ObjList*      make_obj(ValPtr head,ObjList* tail);
-ObjAst*       make_obj(ExprPtrList);
+ObjAst*       make_obj(ExprPtr);
+ObjAst*       make_obj(Expr*);
 Obj*          copy_obj(Obj* obj);
 void          recycleMem(EnvPtr env);
 void          mark(EnvPtr obj);
@@ -139,11 +143,11 @@ typedef enum{
              VAL_BOOL,
              VAL_NUMBER,
              VAL_String,
+             VAL_Ast,
              VAL_Procedure,
              VAL_Primitive,
              VAL_Tuple,
-             VAL_List,
-             VAL_Ast
+             VAL_List
 } val_type;
 
 struct Value{

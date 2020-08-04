@@ -10,7 +10,7 @@ const char oneCharTokens[]=
   '[',']',
   '<','>',
   ':',';','.',',',
-  '|','\\'
+  '|','\\','\''
 };
 
 bool includes(const char& c,const char* list,
