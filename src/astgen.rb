@@ -39,6 +39,13 @@ using TokenList = std::vector<Token>;
 
 #{expr_type}
 
+static int idt = 0;
+static void showidt(){
+  for(int i=0;i<idt;i++) cout<<' '; 
+}
+static void indent(){idt+=2;};
+static void deindent(){if(idt>1)idt-=2;};
+
 struct Expr {
   int type=-2;
   bool protect = false;
@@ -97,25 +104,27 @@ struct Expr#{name} : Expr{
   ExprPtr clone() override;
 
   void show() override {
-    cout<<BLUE("<Expr ")<<"#{name} ";
-    if(protect) cout<<"+";
-    cout<<endl;
+    cout<<BLUE("<Expr ")<<"#{name} ";if(protect) cout<<"+";cout<<endl;
+    indent();
     #{members.map do |member|
         type,id = member.split(' ')
-        'cout<<setw(10)<<std::left<<"  '+id+':"<<endl;'+
-                                                     "\n    "+
+        'showidt();cout<<"'+id+':"<<endl;'+"\n    "+
+        "indent();\n    "+
         if type.end_with? 'List'
           "for(auto &i:#{id}){\n    "+
-          '  cout<<setw(14)<<" ";'+
-          "i#{connector(type)}show();cout<<endl;\n    }"
+          '  showidt();'+
+          "i#{connector(type)}show();cout<<endl;\n    }\n"+
+          "deindent();\n    "
         elsif type == "PrimFunc"
-          'cout<<setw(14)<<" primitive "<<endl;'
+          'showidt();cout<<" primitive "<<endl;deindent();'
         else
-          "cout<<setw(14)<<' ';"+id+connector(type)+"show();cout<<endl;"
+          "showidt();"+id+connector(type)+"show();cout<<endl;deindent();"
         end
       end.join("\n    ")
      }
-    cout<<BLUE(" >")<<endl;
+    deindent();
+    showidt();
+    cout<<BLUE(">")<<endl;
   }
 };
 EOF

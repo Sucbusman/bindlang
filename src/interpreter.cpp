@@ -79,7 +79,6 @@ void Interpreter::standardEnvironment(){
   PRIM("if",2,If);
   PRIM("while",2,While);
   PRIM2("=>",1,Pipe,true);
-  PRIM("'",0,Quote);
 
   PRIM("empty?",1,isEmpty);
 
@@ -190,11 +189,15 @@ ValPtr Interpreter::evalList(ExprPtr expr){
   ObjList* last = make_obj(nullptr,nullptr);
   if(e->protect){
     for(auto it=lst.rbegin();it!=lst.rend();it++){
-      last = make_obj(expr2val(move(*it)),last);
+      auto v = expr2val(move(*it));
+      v->immutable = true;
+      last = make_obj(v,last);
     }
   }else{
     for(auto it=lst.rbegin();it!=lst.rend();it++){
-      last = make_obj(eval(move(*it)),last);
+      auto v = eval(move(*it));
+      v->immutable = true;
+      last = make_obj(v,last);
     }
   }
   return make_shared<Value>(last);
@@ -219,9 +222,8 @@ ValPtr Interpreter::evalSet(ExprPtr expr){
   check_error();
   if(beset){
     if(beset->immutable){
-      printVal(beset);
-      error(" is immutable");
-      return nullptr;
+      auto copy = make_shared<Value>(*val);
+      return copy;
     }else{
       *beset = *val;
       return val;
@@ -560,12 +562,6 @@ ValPtr Interpreter::Pipe(ExprPtrList args,bool left_to_right){
   return eval(move(func));
 }
 
-ValPtr Interpreter::Quote(ExprPtrList args){
-  for(auto & arg:args){
-    auto ast = make_shared<Value>(make_obj(move(arg)));
-  }
-  return nullptr;
-}
 
 // tuple
 #define TUPLE_PRELUDE(SRC)                   \

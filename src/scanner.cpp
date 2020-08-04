@@ -10,7 +10,7 @@ const char oneCharTokens[]=
   '[',']',
   '<','>',
   ':',';','.',',',
-  '|','\\','\''
+  '|','\\','\'','\''
 };
 
 bool includes(const char& c,const char* list,
@@ -39,7 +39,6 @@ inline bool isop(const char& c){
     case '*':
     case '/':
     case '%':
-    case '\'': //quote
       return true;
     default:
       return false;
