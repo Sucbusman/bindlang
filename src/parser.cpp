@@ -89,7 +89,7 @@ ExprPtr Parser::parseExpr(){
         case '(':           return parseCall();
         case '.':           return parseDot();
         default:
-          return parseId();
+          return make_unique<ExprId>(token_);
       }
     }
   }
@@ -153,16 +153,26 @@ ExprPtr Parser::parseFunc(){
 }
 
 ExprPtr Parser::parseAtom(){
+  ExprPtr atom;
   switch(token_.type){
     case tok_str:
-    case tok_num: return make_unique<ExprAtom>(token_);
+    case tok_num:
+       atom =  make_unique<ExprAtom>(token_);
+       break;
     case '<':
-      return parseTuple();
+      atom =  parseTuple();
+      break;
     case '[':
-      return parseList();
+      atom =  parseList();
+      break;
+    default:
+      error("Expect atoms.");
+      return nullptr;
   }
-  error("Expect atoms.");
-  return nullptr;
+  if(peekNext().type == '.')
+    return parseDot(move(atom)); 
+  else
+    return atom;
 }
 
 ExprPtr Parser::parseDefine(){
@@ -174,7 +184,18 @@ ExprPtr Parser::parseDefine(){
   return make_unique<ExprDefine>(id,move(expr),use_protect());
 }
 
+ExprPtr Parser::parseSet(ExprPtr beset){
+  //eg. somefunc(somearg) = 5
+  //                    ^
+  next();               //^
+  ExprPtr expr = parseExpr();
+  return make_unique<ExprSet>(move(beset),move(expr),use_protect());
+}
+
 ExprPtr Parser::parseId(){
+  //eg. mike.age
+  //        ^
+  next();//  ^
   verifyId(token_);
   return make_unique<ExprId>(token_);
 }
@@ -250,8 +271,11 @@ ExprPtr Parser::parseCall(ExprPtr callee){
   next();//eat ')'
   auto call = make_unique<ExprCall>(move(callee),
                                     move(args),move(extra));
-  if(peekNext().type == '('){
+  tok = peekNext();
+  if(tok.type == '('){
     return parseCall(move(call));
+  }else if(tok.type == '='){
+    return parseSet(move(call));
   }
   return call; 
 }
@@ -260,18 +284,20 @@ ExprPtr Parser::parseDot(ExprPtr object){
   if(not object){
     object = make_unique<ExprId>(token_);
   }
-  ExprPtrList args;
-  args.push_back(move(object));
   //eg. person.age.plus-one
   //         ^
   next();//   ^
-  auto callee = parseExpr();
-  auto tok = peekNext();
+  ExprPtrList args;
   ExprPtrList extra;
+  args.push_back(move(object));
+  auto callee = parseId();
   auto call = make_unique<ExprCall>(move(callee),
                                     move(args),move(extra));
+  auto tok = peekNext();
   if(tok.type == '.'){
     return parseDot(move(call));
+  }else if(tok.type == '='){
+    return parseSet(move(call));
   }else{
     return call;
   }

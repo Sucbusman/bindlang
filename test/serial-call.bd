@@ -1,0 +1,14 @@
+inc = \x
+->\c->begin(print("inc") c(+(x 1)))
+
+double=\x
+->\c->begin(print("double") c(*(x 2)))
+
+neg=\x
+->\c->begin(print("neg") c(-(0 x)))
+
+#serial call
+
+val = inc(3)(double)(neg)
+print("here")
+val(print)

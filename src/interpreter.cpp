@@ -139,6 +139,7 @@ ValPtr Interpreter::eval(ExprPtr expr){
     case ATOM:     return evalAtom(move(expr));break;
     case ID:       return evalId(move(expr));break;
     case DEFINE:   return evalDefine(move(expr));break;
+    case SET:      return evalSet(move(expr));break;
     case FUNC:     return evalFunc(expr->clone());break;
     case CALL:     return evalCall(move(expr));break;
     case TUPLE:    return evalTuple(move(expr));break;
@@ -208,6 +209,27 @@ ValPtr Interpreter::evalId(ExprPtr expr){
     return nullptr;
   }
   return *v;
+}
+
+ValPtr Interpreter::evalSet(ExprPtr expr){
+  auto setexpr = rcast(ExprSet*,expr);
+  auto beset = eval(move(setexpr->beset));
+  check_error();
+  auto val = eval(move(setexpr->expr));
+  check_error();
+  if(beset){
+    if(beset->immutable){
+      printVal(beset);
+      error(" is immutable");
+      return nullptr;
+    }else{
+      *beset = *val;
+      return val;
+    }
+  }else{
+    error("Can not be set");
+    return nullptr;
+  }
 }
 
 ValPtr Interpreter::evalDefine(ExprPtr expr){

@@ -37,6 +37,7 @@ class Parser {
   ExprPtr parseExpr();
   ExprPtr parseAtom();
   ExprPtr parseDefine();
+  ExprPtr parseSet(ExprPtr);
   ExprPtr parseId();
   ExprPtr parseList();
   ExprPtr parseTuple();

@@ -25,6 +25,7 @@ class Interpreter{
   ValPtr evalList(ExprPtr expr);
   ValPtr evalId(ExprPtr expr);
   ValPtr evalDefine(ExprPtr expr);
+  ValPtr evalSet(ExprPtr expr);
   ValPtr evalFunc(ExprPtr expr);
   ValPtr evalCall(ExprPtr expr);
   ValPtr evalCallProc(ObjProcedure* proc,
@@ -53,7 +54,6 @@ class Interpreter{
   ValPtr If(ExprPtrList args);
   ValPtr While(ExprPtrList args);
   ValPtr Pipe(ExprPtrList args,bool);
-  ValPtr Quote(ExprPtrList args);
 
   // tuple:mutable flat array,random access
   ValPtr isEmpty(ExprPtrList args);

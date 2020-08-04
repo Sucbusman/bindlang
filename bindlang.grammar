@@ -1,11 +1,12 @@
 
 blank  ::= re"\s";
 id     ::= re"[a-zA-Z@_$][a-zA-Z@_$0-9]*";
-list   ::= "["[expr {blank expr}]"]"
-tupple ::= "<"[expr {blank expr}]">"
+list   ::= "["[expr {blank expr}]"]"  //immutable
+tupple ::= "<"[expr {blank expr}]">"  //mutable
 
 expr   ::= define|call|atom|func|id;
-define ::= id "=" expr;
+define ::= id "=" expr; //immutable
+set    ::= call "=" expr; //mutable
 call   ::= callee "(" [ expr {blank expr} ] ")";
 dot    ::= object "." expr
 callee ::= id|call

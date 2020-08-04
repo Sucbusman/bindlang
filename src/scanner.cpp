@@ -215,8 +215,15 @@ Token Scanner::tokNumber(){
               return not isdigit(ch);
              };
   skipUntilNext(notdigit);
-  if(future.front() == '.'){
+  if(peekNext() == '.'){
+    char ch = borrow();
+    if(not isdigit(ch)){
+      //eg. 3.double
+      //    ^
+      return makeToken(tok_num);
+    }
     nextChar();//eat '.'
+    nextChar();
     skipUntilNext(notdigit);
   }
   return makeToken(tok_num);

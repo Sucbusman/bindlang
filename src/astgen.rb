@@ -3,11 +3,11 @@ Exprs = {
   Atom:    ["Token literal"],
   Id:      ["Token id"],
   Define:  ["Token id","ExprPtr expr"],
+  Set:     ["ExprPtr beset","ExprPtr expr"],
   Func:    ["TokenList params","ExprPtr body"],
   Call:    ["ExprPtr callee","ExprPtrList args","ExprPtrList extra"],
   Tuple:   ["ExprPtrList container"],
-  List:    ["ExprPtrList container"],
-  Quote:   ["ExprPtrList container"],
+  List:    ["ExprPtrList container"]
 }
 
 def expr_type

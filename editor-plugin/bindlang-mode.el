@@ -34,8 +34,9 @@
     (,(rx symbol-start (group (1+ (or word ?_ ?? ?! ?-)))
           (0+ space) "=")
      (1 font-lock-variable-name-face))
-    (,(rx symbol-start (group ?<) (*? anything) (group ?>))
-     (1 font-lock-type-face) (2 font-lock-type-face))))
+     (,(rx symbol-start (group ?<) (*? anything) (group ?>))
+      (1 font-lock-type-face) (2 font-lock-type-face))
+    ))
 
 (defun find-partial-paren ()
   "Find unclosing left parenthesis in a line"
@@ -83,7 +84,6 @@
   "Indent current line as bindlang code"
   (interactive)
   (indent-line-to (bindlang-calculate-indent)))
-  
 
 (defvar bindlang-mode-syntax-table
   (let ((st (make-syntax-table)))

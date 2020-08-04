@@ -3,12 +3,14 @@ fac = \n cont
 ->if(eq(n 1)
      cont(1)
      fac(-(n 1) \v->cont(*(v n))))
-end = \v->print(v)
 
 fib = \n cont
 ->if(le(n 2)
      cont(1)
      fib(-(n 1) \v1->fib(-(n 2) \v2->cont(+(v1 v2)))))
 
+end = \v->print(v)
+
+# test
 fac(7 end)
 fib(6 end)

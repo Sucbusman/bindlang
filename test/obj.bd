@@ -1,26 +1,35 @@
+# std
+map = \f t
+      -> begin(h=\n->if(eq(n len(t)) 1
+							          begin(f(take(t n))
+							                h(+(n 1))))
+				       h(0))
 # compound data structure test
 Student = \n a 
           -> <n a>
 
 mike = Student("mike" 18)
 john = Student("john" 20)
+name = \s->take(s 0)
+age  = \s->take(s 1)
 
 sayHi = \s -> print("I am " take(s 0)
                     ",my age is " take(s 1))
 
-sayHi(mike)
-sayHi(john)
+old = \n s -> set!(s 1 +(take(s 1) n))
 
-growOld = \n s -> set!(s 1 +(take(s 1) n))
+years-later = \y->map(old(y) <mike john>)
 
-twe-years-later = growOld(2)
+# test
+mike.sayHi
+john.sayHi
 
-map = \f t
-      -> begin(h=\n->if(eq(n len(t)) 1
-							          begin(f(take(t n))
-							                h(+(n 1))))
-				       h(0))
-map(twe-years-later <mike john>)
+twe = 2
+twe.years-later
 
-sayHi(mike)
-sayHi(john)
+mike.sayHi
+john.sayHi
+
+mike.age = 3
+
+print("mike age: " mike.age)

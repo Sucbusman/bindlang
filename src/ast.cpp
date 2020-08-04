@@ -22,20 +22,16 @@ ExprPtr ExprList::clone(){
   return std::make_unique<ExprList>(move(newcontainer));
 }
 
-ExprPtr ExprQuote::clone(){
-  ExprPtrList newcontainer;
-  for(auto const& i:container){
-    newcontainer.push_back(i->clone());
-  }
-  return std::make_unique<ExprQuote>(move(newcontainer));
-}
-
 ExprPtr ExprId::clone(){
   return std::make_unique<ExprId>(id);
 }
 
 ExprPtr ExprDefine::clone(){
   return std::make_unique<ExprDefine>(id,expr->clone());
+}
+
+ExprPtr ExprSet::clone(){
+  return std::make_unique<ExprSet>(beset->clone(),expr->clone());
 }
 
 ExprPtr ExprFunc::clone(){

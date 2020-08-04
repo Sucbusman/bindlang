@@ -1,9 +1,6 @@
-map = \ f t
--> begin(h=\ n -> if(eq(n len(t)) n
-                     begin(f(take(t n))
-                           h(+(n 1))))
-         h(0))
+num = 1
+inc = \x->+(x 1)
+double = \x->*(2 x)
+neg = \x->-(0 x)
 
-t = < 1 2 3 4>
-
-map(\ x-> print(+(x 1)) t)
+print(num.double.inc)

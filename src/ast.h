@@ -20,11 +20,11 @@ typedef enum{
   ATOM,
   ID,
   DEFINE,
+  SET,
   FUNC,
   CALL,
   TUPLE,
-  LIST,
-  QUOTE
+  LIST
 } expr_type;
 
 
@@ -110,6 +110,30 @@ struct ExprDefine : Expr{
     cout<<endl;
     cout<<setw(10)<<std::left<<"  id:"<<endl;
     cout<<setw(14)<<' ';id.show();cout<<endl;
+    cout<<setw(10)<<std::left<<"  expr:"<<endl;
+    cout<<setw(14)<<' ';expr->show();cout<<endl;
+    cout<<BLUE(" >")<<endl;
+  }
+};
+
+struct ExprSet : Expr{
+  ExprPtr beset;
+  ExprPtr expr;
+  
+  ExprSet(ExprPtr beset,ExprPtr expr)
+    : Expr(SET),beset(std::move(beset)),expr(std::move(expr)){}
+
+  ExprSet(ExprPtr beset,ExprPtr expr,bool protect)
+    : Expr(SET,protect),beset(std::move(beset)),expr(std::move(expr)){}
+
+  ExprPtr clone() override;
+
+  void show() override {
+    cout<<BLUE("<Expr ")<<"Set ";
+    if(protect) cout<<"+";
+    cout<<endl;
+    cout<<setw(10)<<std::left<<"  beset:"<<endl;
+    cout<<setw(14)<<' ';beset->show();cout<<endl;
     cout<<setw(10)<<std::left<<"  expr:"<<endl;
     cout<<setw(14)<<' ';expr->show();cout<<endl;
     cout<<BLUE(" >")<<endl;
@@ -209,29 +233,6 @@ struct ExprList : Expr{
 
   void show() override {
     cout<<BLUE("<Expr ")<<"List ";
-    if(protect) cout<<"+";
-    cout<<endl;
-    cout<<setw(10)<<std::left<<"  container:"<<endl;
-    for(auto &i:container){
-      cout<<setw(14)<<" ";i->show();cout<<endl;
-    }
-    cout<<BLUE(" >")<<endl;
-  }
-};
-
-struct ExprQuote : Expr{
-  ExprPtrList container;
-  
-  ExprQuote(ExprPtrList container)
-    : Expr(QUOTE),container(std::move(container)){}
-
-  ExprQuote(ExprPtrList container,bool protect)
-    : Expr(QUOTE,protect),container(std::move(container)){}
-
-  ExprPtr clone() override;
-
-  void show() override {
-    cout<<BLUE("<Expr ")<<"Quote ";
     if(protect) cout<<"+";
     cout<<endl;
     cout<<setw(10)<<std::left<<"  container:"<<endl;
