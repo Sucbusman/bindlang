@@ -6,7 +6,7 @@ Person = \n a
 
 snd = =>(tl hd)
 
-print(snd('[name age]))
+snd('[name age])
 
 #Class = \attr
 #->\n a->begin(hd(attr)=n

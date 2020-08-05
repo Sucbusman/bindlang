@@ -5,12 +5,13 @@
 #include "ast.h"
 #include "utils.h"
 #include "queue.h"
+
 namespace bindlang {
 
 class Parser {
  public:
   Parser(Scanner &scanner):
-    scanner(scanner),
+    scanner(scanner),error_num(0),
     future(law::fix_queue<Token>(5)),
     protect(false){
     scanner.reset();

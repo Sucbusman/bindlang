@@ -1,0 +1,6 @@
+#!/usr/local/bin/bindlang
+print("I am test1.")
+load("test2.bd")
+print(sth)
+print("I am test1..")
+print("I am test1...")

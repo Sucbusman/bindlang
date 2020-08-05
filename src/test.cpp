@@ -104,21 +104,13 @@ void repl(){
 }
 
 void runFile(string const& fn){
-  auto ifs = ifstream(fn);
-  auto scn = Scanner(ifs);
-  auto parser = Parser(scn);
   auto interp = Interpreter();
-  parser.reset();
-  interp.reset();
-  while(not parser.atEnd()){
-    auto expr = parser.parseNext();
-    interp.eval(move(expr));
-  }
+  interp.runFile(fn);
 }
 
 int main(int argc,char *argv[]){
   if(argc>=2)
-    runFile(argv[1]);
+    runFile(string(argv[1]));
   else 
     repl();
   return 0;

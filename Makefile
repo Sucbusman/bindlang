@@ -2,8 +2,8 @@ Name=bindlang
 EmacsDir=~/.emacs.d/mypackages/bindlang/
 Sources=$(shell ls src/*.cpp)
 Objects=$(subst src/,obj/,$(subst .cpp,.o ,$(Sources)))
-CCFLAG=-std=c++2a -Wall -O2 -march=native
-CC=g++
+CCFLAG=-std=c++2a -Wall -O2 -march=native -g
+CC=clang++
 $(Name): $(Objects)
 	$(CC) $(CCFLAG) $(Objects) -o $@
 obj/%.o: src/%.cpp

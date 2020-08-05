@@ -290,11 +290,22 @@ ExprPtr Parser::parseDot(ExprPtr object){
   ExprPtrList args;
   ExprPtrList extra;
   args.push_back(move(object));
-  auto callee = parseId();
+  // parseCall | parseId
+  ExprPtr callee;
+  auto tok = peekNext();
+  if(tok.type == tok_id){
+    next();
+    tok = peekNext();
+    if(tok.type=='(') callee = parseCall();
+    else callee = make_unique<ExprId>(token_);
+  }else{
+    error("Expect identify");
+    return nullptr;
+  }
   auto call = make_unique<ExprCall>(move(callee),
                                     move(args),move(extra));
-  auto tok = peekNext();
-  if(tok.type == '.'){
+  tok = peekNext();
+  if(tok.type == '.'){//left associate
     return parseDot(move(call));
   }else if(tok.type == '='){
     return parseSet(move(call));

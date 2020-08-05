@@ -1,5 +1,9 @@
+#include <cstdlib>
 #include <cstring>
 #include <memory>
+#include <fstream>
+#include <streambuf>
+#include <unistd.h>
 #include "interpreter.h"
 #include "ast.h"
 #include "type.h"
@@ -19,6 +23,47 @@ namespace bindlang {
 
 void Interpreter::reset(){
   error_num = 0;
+}
+
+string dirname(string const& path){
+  string dir = "";
+  for(auto i = path.size()-1;i>=0;i--){
+    if(path[i] == '/'){
+      for(long unsigned int j=0;j<=i;j++){
+        dir += path[j];
+      }
+      break;
+    }
+  }
+  return dir;
+}
+
+void Interpreter::runFile(string const& file_name){
+  string fn;
+  if(files.empty()){
+    fn = string(file_name);
+  }else{
+    auto s =files.back();
+    fn = dirname(s)+file_name;
+    for(auto const& already:files){
+      if(already==fn) return;
+    }
+  }
+  if(access(fn.c_str(), F_OK)!=0){
+    error("Can not open file:"<<fn);
+    return;
+  }
+  files.push_back(fn);
+
+  auto ifs = ifstream(fn);
+  auto scn = Scanner(ifs);
+  auto parser = Parser(scn);
+  while(parser.fine()){
+    auto expr = parser.parseNext();
+    if(not expr or expr->type<0)
+      break;
+    eval(move(expr));
+  }
 }
 
 template <typename Func,typename Object,typename ...Args>
@@ -93,7 +138,10 @@ void Interpreter::standardEnvironment(){
   PRIM("tl",1,Tail);
 
   PRIM("print",1,Print);
+  PRIM("println",1,Println);
 
+  PRIM("load",1,Load);
+  
   PRIM("env",0,InspectEnv);
   PRIM("debug",0,Debug);
   PRIM("garbage",0,Garbage);
@@ -592,8 +640,21 @@ ValPtr Interpreter::Take(ExprPtrList args){
 }
 
 ValPtr Interpreter::Length(ExprPtrList args){
-  TUPLE_PRELUDE(args[0]);
-  return make_shared<Value>((double)pc->size());
+  auto first = eval(move(args[0]));
+  switch(first->type){
+    case VAL_String:{
+      auto o = cast(ObjString*,first->as.obj);
+      return make_shared<Value>((double)o->s.size());
+    }
+    case VAL_Tuple:{
+      auto o = cast(ObjTuple*,first->as.obj);
+      return make_shared<Value>((double)o->container.size());
+    }
+    default:
+      error("Unexpect type "<<first->type<<" in eval len");
+      return nullptr;
+  }
+  return nullptr;
 }
 
 ValPtr Interpreter::Set(ExprPtrList args){
@@ -682,9 +743,31 @@ ValPtr Interpreter::Tail(ExprPtrList args){
   }
 }
 
+// Module
+ValPtr Interpreter::Load(ExprPtrList args){
+  for(auto const& arg:args){
+    auto v = eval(arg->clone());
+    Expect(v->type,VAL_String);
+    auto obj = v->as.obj;
+    auto o = cast(ObjString*,obj);
+    envs.push(toplevel);
+    runFile(o->s);//define all symbol on toplevel
+    envs.pop();
+  }
+  return nullptr;
+}
+
 // IO
 ValPtr Interpreter::Print(ExprPtrList args){
-  for(const auto &arg : args){
+  for(auto const& arg : args){
+    auto v = eval(arg->clone());
+    printVal(v);
+  }
+  return std::make_shared<Value>();
+}
+
+ValPtr Interpreter::Println(ExprPtrList args){
+  for(auto const& arg : args){
     auto v = eval(arg->clone());
     printVal(v);
   }

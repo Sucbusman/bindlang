@@ -11,9 +11,11 @@ namespace bindlang {
 class Interpreter{
  public:
   Interpreter(){standardEnvironment();}
-  void reset();
+  void   reset();
   ValPtr eval(ExprPtr expr);
+  void   runFile(string const& fn);
  private:
+  vector<string> files;
   bool   interrupt = false;
   int    error_num=0;
   EnvPtr toplevel;
@@ -69,8 +71,12 @@ class Interpreter{
   ValPtr Head(ExprPtrList args);
   ValPtr Tail(ExprPtrList args);
 
+  // Module
+  ValPtr Load(ExprPtrList args);
+
   // IO
   ValPtr Print(ExprPtrList args);
+  ValPtr Println(ExprPtrList args);
 
   // debug
   ValPtr InspectEnv(ExprPtrList args);

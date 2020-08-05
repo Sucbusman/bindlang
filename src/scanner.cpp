@@ -182,7 +182,10 @@ Token Scanner::nextToken(){
       if (ch == '>') {
         nextChar();
         return makeToken(tok_arrow);
-      } else
+      } else if(isIdStart(ch) or isdigit(ch)){
+        nextChar();
+        return tokIdentify();
+      }else
         return makeToken(tok_id);
     }
     case '=': {

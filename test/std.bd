@@ -1,4 +1,13 @@
 #standard library
++1 = \x->+(x 1)
+*2 = \x->*(2 x)
+-1 = \x->-(x 1)
+-2 = \x->-(x 2)
+
+fst = hd
+snd = =>(tl hd)
+thd = =>(tl tl hd)
+
 map = \f t
 ->begin(h=\n
         ->if(eq(n len(t))
@@ -21,19 +30,22 @@ foldr = \f i t
         h(-(len(t) 1) i))
 
 range = \n
- ->begin(h=\c t->
-         if(eq(c n)
-            t
-            h(+(c 1) +(t <c>)))
-         h(0 <>))
+->begin(h=\c t->
+        if(eq(c n)
+           t
+           h(+(c 1) +(t <c>)))
+        h(0 <>))
 
-+1 = \x->+(x 1)
+times = \f->\n
+->while(le(i n)
+        f(i)
+        i=i.+1|i=1)
 
 #test
-t = < 1 2 3 4 >
-map(\x->print(+(x 1)) t)
-print("foldl:"foldl(- 15 t))
-print("foldr:"foldr(- 15 t))
-\t->while(lt(i len(t))
-          print(take(t i))
-          i=+1(i)|i=0)(range(5))
+#t = < 1 2 3 4 >
+#map(\x->print(+(x 1)) t)
+#print("foldl:"foldl(- 15 t))
+#print("foldr:"foldr(- 15 t))
+#\t->while(lt(i len(t))
+#          print(take(t i))
+#          i=+1(i)|i=0)(range(5))
