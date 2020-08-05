@@ -6,6 +6,8 @@ Person = \n a
 
 snd = =>(tl hd)
 
+print(snd('[name age]))
+
 #Class = \attr
 #->\n a->begin(hd(attr)=n
 #              snd(attr)=a
@@ -17,9 +19,8 @@ snd = =>(tl hd)
 mike = Person("mike" 18)
 jimmy = Person("jimmy" 20)
 
-id = \x->x
-age  = \o->o(|ans.id=age)
-name = \o->o(|ans.id=name)
+age  = \o->o(|ans=age)
+name = \o->o(|ans=name)
 
 mike.age = 2
 mike(|print(ans))

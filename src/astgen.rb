@@ -105,26 +105,23 @@ struct Expr#{name} : Expr{
 
   void show() override {
     cout<<BLUE("<Expr ")<<"#{name} ";if(protect) cout<<"+";cout<<endl;
-    indent();
+    indent();indent();
     #{members.map do |member|
         type,id = member.split(' ')
-        'showidt();cout<<"'+id+':"<<endl;'+"\n    "+
-        "indent();\n    "+
+        'deindent();showidt();cout<<"'+id+':"<<endl;'+"\n    "+
         if type.end_with? 'List'
-          "for(auto &i:#{id}){\n    "+
+          "indent();\n    for(auto &i:#{id}){\n    "+
           '  showidt();'+
-          "i#{connector(type)}show();cout<<endl;\n    }\n"+
-          "deindent();\n    "
+          "i#{connector(type)}show();cout<<endl;\n    }\n"
         elsif type == "PrimFunc"
-          'showidt();cout<<" primitive "<<endl;deindent();'
+          'indent();showidt();cout<<" primitive "<<endl;'
         else
-          "showidt();"+id+connector(type)+"show();cout<<endl;deindent();"
+          "indent();showidt();"+id+connector(type)+"show();cout<<endl;"
         end
       end.join("\n    ")
      }
-    deindent();
-    showidt();
-    cout<<BLUE(">")<<endl;
+    deindent();deindent();
+    showidt();cout<<BLUE(">")<<endl;
   }
 };
 EOF

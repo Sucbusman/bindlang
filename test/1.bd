@@ -2,5 +2,7 @@ num = 1
 inc = \x->+(x 1)
 double = \x->*(2 x)
 neg = \x->-(0 x)
-
-print(num.double.inc)
+snd = =>(tl hd)
+test = '[ name age ]
+print(snd(test))
+print(2.double.inc.inc)
