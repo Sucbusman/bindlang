@@ -19,10 +19,24 @@ namespace bindlang {
   do{if((v)!=(t)){error("Expect "#t);return nullptr;}}while(0)
 
 #define check_error() \
-  if(error_num>0){ return nullptr;} 
+  if(error_num>0){ return nullptr;}
+
+#define mkval(init)\
+  make_shared<Value>(make_obj(init))
 
 void Interpreter::reset(){
   error_num = 0;
+}
+
+string basename(string const& path){
+  string base="";
+  for(auto i = path.size()-1;i>=0;i--){
+    if(path[i] == '/'){
+      return base;
+    }
+    base+=path[i];
+  }
+  return base;
 }
 
 string dirname(string const& path){
@@ -41,7 +55,10 @@ string dirname(string const& path){
 void Interpreter::runFile(string const& file_name){
   string fn;
   if(files.empty()){
+    //main point
     fn = string(file_name);
+    auto base = basename(fn);
+    envs.top()->set("_MAIN",mkval(base));
   }else{
     auto s =files.back();
     fn = dirname(s)+file_name;
@@ -54,6 +71,8 @@ void Interpreter::runFile(string const& file_name){
     return;
   }
   files.push_back(fn);
+  auto base = basename(fn);
+  envs.top()->set("_FILE",mkval(base));
 
   auto ifs = ifstream(fn);
   auto scn = Scanner(ifs);
@@ -807,6 +826,7 @@ ValPtr Interpreter::Gc(ExprPtrList args){
   return nullptr;
 }
 
+#undef mkval
 #undef Expect
 #undef error
 }

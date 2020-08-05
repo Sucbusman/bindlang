@@ -243,7 +243,7 @@ Token Scanner::tokString(){
 }
 
 bool Scanner::isIdStart(char ch){
-  if(isalpha(ch) or isop(ch)){
+  if(isalpha(ch) or isop(ch) or ch=='_'){
     return true;
   }
   else
@@ -264,6 +264,7 @@ Token Scanner::tokIdentify(){
     }
     else if(not (ch=='?' or
                  ch=='!' or
+                 ch=='_' or
                  isIdStart(ch) or
                  isdigit(ch))) break;
     else

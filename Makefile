@@ -1,5 +1,6 @@
 Name=bindlang
-EmacsDir=~/.emacs.d/mypackages/bindlang/
+Prefix=/usr
+EmacsDir=~/.emacs.d/mypackages/bindlang
 Sources=$(shell ls src/*.cpp)
 Objects=$(subst src/,obj/,$(subst .cpp,.o ,$(Sources)))
 CCFLAG=-std=c++2a -Wall -O2 -march=native -g
@@ -23,4 +24,4 @@ emacs:
 	cp -v editor-plugin/bindlang-mode.el $(EmacsDir)
 	cd $(EmacsDir) && emacs --batch --eval '(byte-compile-file "bindlang-mode.el")'
 install:
-	cp -v $(Name) $(HOME)/.local/bin/$(Name)
+	cp -v $(Name) $(Prefix)/local/bin/$(Name)

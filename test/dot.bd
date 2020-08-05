@@ -9,15 +9,15 @@ fib = \n
 repeat-string = \n s
 ->n.times(\unsed->print(s))
 
-name = "Bindlang "
-row = 9
+name = "Bindlang " row = 9
+
 row.times(\n->begin(l= fib(n) r= fib(-(row.+1 n)) m=+(-(fib(row) l r) 1)
-                    repeat-string(l "+")
+                    repeat-string(l "#")
                     if(eq(n /(row.+1 2))
                        begin(half = /(-(+(fib(row) 1) l r len(name)) 2)
                              repeat-string(half " ")
                              print(name)
                              repeat-string(half " "))
                        repeat-string(m " "))
-                    repeat-string(r "+")
+                    repeat-string(r "*")
                     println("")))
