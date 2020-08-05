@@ -276,6 +276,8 @@ ExprPtr Parser::parseCall(ExprPtr callee){
     return parseCall(move(call));
   }else if(tok.type == '='){
     return parseSet(move(call));
+  }else if(tok.type == '.'){
+    return parseDot(move(call));
   }
   return call; 
 }
