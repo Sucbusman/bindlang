@@ -326,9 +326,11 @@ void ObjList::show(){
 }
 
 void ObjAst::show(){
-  cout<<BLUE("<Ast ");
-  expr->show();
-  cout<<BLUE(" >");
+  cout<<BLUE("<Ast ")<<endl;
+  indent();
+    showidt();expr->show();cout<<endl;
+  deindent();
+  cout<<BLUE(">");
 }
 
 // environment

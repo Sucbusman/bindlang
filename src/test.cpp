@@ -27,6 +27,7 @@ void testParser(Parser & parser){
   while(parser.fine() and not parser.atEnd()){
     expr= parser.parseNext();
     expr->show();
+    cout<<endl;
   }
 }
 

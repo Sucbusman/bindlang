@@ -39,12 +39,13 @@ using TokenList = std::vector<Token>;
 
 #{expr_type}
 
-static int idt = 0;
-static void showidt(){
-  for(int i=0;i<idt;i++) cout<<' '; 
+namespace STDOUT{
+  extern int idt;
 }
-static void indent(){idt+=2;};
-static void deindent(){if(idt>1)idt-=2;};
+
+void showidt();
+void indent();
+void deindent();
 
 struct Expr {
   int type=-2;
@@ -121,7 +122,7 @@ struct Expr#{name} : Expr{
       end.join("\n    ")
      }
     deindent();deindent();
-    showidt();cout<<BLUE(">")<<endl;
+    showidt();cout<<BLUE(">");
   }
 };
 EOF

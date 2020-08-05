@@ -1,6 +1,15 @@
 #include "ast.h"
 
 namespace bindlang{
+namespace STDOUT{
+int idt = 0;
+}
+void showidt(){
+  for(int i=0;i<STDOUT::idt;i++) cout<<' '; 
+}
+void indent(){STDOUT::idt+=2;};
+void deindent(){if(STDOUT::idt>1) STDOUT::idt-=2;};
+
 
 ExprPtr ExprAtom::clone(){
   return std::make_unique<ExprAtom>(literal);

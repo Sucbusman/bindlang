@@ -28,12 +28,13 @@ typedef enum{
 } expr_type;
 
 
-static int idt = 0;
-static void showidt(){
-  for(int i=0;i<idt;i++) cout<<' '; 
+namespace STDOUT{
+  extern int idt;
 }
-static void indent(){idt+=2;};
-static void deindent(){if(idt>1)idt-=2;};
+
+void showidt();
+void indent();
+void deindent();
 
 struct Expr {
   int type=-2;
@@ -74,7 +75,7 @@ struct ExprAtom : Expr{
     deindent();showidt();cout<<"literal:"<<endl;
     indent();showidt();literal.show();cout<<endl;
     deindent();deindent();
-    showidt();cout<<BLUE(">")<<endl;
+    showidt();cout<<BLUE(">");
   }
 };
 
@@ -95,7 +96,7 @@ struct ExprId : Expr{
     deindent();showidt();cout<<"id:"<<endl;
     indent();showidt();id.show();cout<<endl;
     deindent();deindent();
-    showidt();cout<<BLUE(">")<<endl;
+    showidt();cout<<BLUE(">");
   }
 };
 
@@ -119,7 +120,7 @@ struct ExprDefine : Expr{
     deindent();showidt();cout<<"expr:"<<endl;
     indent();showidt();expr->show();cout<<endl;
     deindent();deindent();
-    showidt();cout<<BLUE(">")<<endl;
+    showidt();cout<<BLUE(">");
   }
 };
 
@@ -143,7 +144,7 @@ struct ExprSet : Expr{
     deindent();showidt();cout<<"expr:"<<endl;
     indent();showidt();expr->show();cout<<endl;
     deindent();deindent();
-    showidt();cout<<BLUE(">")<<endl;
+    showidt();cout<<BLUE(">");
   }
 };
 
@@ -171,7 +172,7 @@ struct ExprFunc : Expr{
     deindent();showidt();cout<<"body:"<<endl;
     indent();showidt();body->show();cout<<endl;
     deindent();deindent();
-    showidt();cout<<BLUE(">")<<endl;
+    showidt();cout<<BLUE(">");
   }
 };
 
@@ -206,7 +207,7 @@ struct ExprCall : Expr{
     }
 
     deindent();deindent();
-    showidt();cout<<BLUE(">")<<endl;
+    showidt();cout<<BLUE(">");
   }
 };
 
@@ -231,7 +232,7 @@ struct ExprTuple : Expr{
     }
 
     deindent();deindent();
-    showidt();cout<<BLUE(">")<<endl;
+    showidt();cout<<BLUE(">");
   }
 };
 
@@ -256,7 +257,7 @@ struct ExprList : Expr{
     }
 
     deindent();deindent();
-    showidt();cout<<BLUE(">")<<endl;
+    showidt();cout<<BLUE(">");
   }
 };
 
