@@ -2,7 +2,7 @@
 --------------------
  > a functional language with some experimental orignal feature
 
-** ====FEATURE======================
+** FEATURE
 
    + dynamic strong type
    + clousure
@@ -13,33 +13,33 @@
 
    + perforation closure 
 
-** =====DATA TYPE===================
-   number
-   string
-   tuple  :mutable scalable leanear table,easy to iteration
-   list   :immutable binary tree,easy to recurse
+** DATA TYPE
+   + number
+   + string
+   + tuple  :mutable scalable leanear table,easy to iteration
+   + list   :immutable binary tree,easy to recurse
 
-** =======GRAMMAR====================
-   blank  ::= re"\s";
-   id     ::= re"[a-zA-Z@_$][a-zA-Z@_$0-9]*";
-   list   ::= {"'"}"["[expr {blank expr}]"]"
-   tupple ::= {"'"}"<"[expr {blank expr}]">"
+** GRAMMAR
+   + blank  ::= re"\s";
+   + id     ::= re"[a-zA-Z@_$][a-zA-Z@_$0-9]*";
+   + list   ::= {"'"}"["[expr {blank expr}]"]"
+   + tupple ::= {"'"}"<"[expr {blank expr}]">"
    //the "'" can protect expressions
    //in above twe container not to be evaluated.
 
-   expr   ::= define|call|atom|func|id;
-   define ::= id "=" expr;
+   + expr   ::= define|call|atom|func|id;
+   + define ::= id "=" expr;
    //immutable,define or changed to new value
 
-   set    ::= call "=" expr;
+   + set    ::= call "=" expr;
    //mutable,directly change what call returned
 
-   call   ::= callee "(" [ expr {blank expr} ] ")";
-   dot    ::= object "." callee
+   + call   ::= callee "(" [ expr {blank expr} ] ")";
+   + dot    ::= object "." callee
    //pass object as single argument to right callee
    //As an syntax sugar for passing right style
 
-   callee ::= id|call
-   object ::= callee|dot
-   func   ::= "\" [ id {blank id }" ] "->" expr;
-   atom   ::= number | string | list | tupple;
+   + callee ::= id|call
+   + object ::= callee|dot
+   + func   ::= "\" [ id {blank id }" ] "->" expr;
+   + atom   ::= number | string | list | tupple;
