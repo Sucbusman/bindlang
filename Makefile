@@ -3,7 +3,7 @@ Prefix=/usr
 EmacsDir=~/.emacs.d/mypackages/bindlang
 Sources=$(shell ls src/*.cpp)
 Objects=$(subst src/,obj/,$(subst .cpp,.o ,$(Sources)))
-CCFLAG=-std=c++2a -Wall -O2 -march=native -g
+CCFLAG=-std=c++2a -Wall -O2 -march=native
 CC=clang++
 $(Name): $(Objects)
 	$(CC) $(CCFLAG) $(Objects) -o $@
@@ -18,7 +18,6 @@ option:
 	@echo $(Objects)
 	@echo $(CCFLAG)
 ast:
-	cp -v src/ast.{h,bak}
 	ruby src/astgen.rb > src/ast.h
 emacs:
 	cp -v editor-plugin/bindlang-mode.el $(EmacsDir)

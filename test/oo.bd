@@ -23,9 +23,9 @@ age  = \o->o(|ans=age)
 name = \o->o(|ans=name)
 
 mike.age = 2
-mike(|print(ans))
+mike(|println(ans))
 
-print(mike.name)
-print(mike.age)
-print(jimmy.name)
-print(jimmy.age)
+println(mike.name)
+println(mike.age)
+println(jimmy.name)
+println(jimmy.age)

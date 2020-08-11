@@ -7,7 +7,7 @@ fib = \n
      +(fib(n.-1) fib(n.-2)))
 
 repeat-string = \n s
-->n.times(\unsed->print(s))
+->n.times(\_->print(s))
 
 name = "Bindlang " row = 9
 
