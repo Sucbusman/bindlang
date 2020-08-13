@@ -7,11 +7,27 @@ void printVal(Value val){
     case VAL_NIL:    cout<<"Nil";
     case VAL_BOOL:   cout<<val.as.boolean;break;
     case VAL_NUMBER: cout<<val.as.number;break;
-    case VAL_String: cout<<*AS_STRING(val);break;
+    case VAL_String: cout<<*AS_CSTRING(val);break;
     default:
       break;
   }
   cout<<endl;
+}
+
+// environment
+Value* Env::get(string s){
+  auto it = map.find(s);
+  if(it != map.end()){
+    return &it->second;
+  }else if(outer){
+    return outer->get(s);
+  }else{
+    return nullptr;
+  }
+}
+
+void Env::set(string s,const Value& val){
+  map[s] = val;
 }
 
 }

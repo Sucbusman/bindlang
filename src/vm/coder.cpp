@@ -1,7 +1,172 @@
+#include <bits/stdint-uintn.h>
+#include <cstdio>
+#include <fstream>
+#include <iterator>
+#include <memory>
+#include <sstream>
 #include "coder.h"
 #include "value.h"
-#include <bits/stdint-uintn.h>
+
 namespace bindlang::vm{
+
+void Coder::parseBytecode(vector<uint8_t>& buffer){
+#define READ(T) (*(T*)(buffer.data()+pos));pos+=sizeof(T)
+#define PUSHV(EXP) constants.push_back(EXP)
+  codes.clear();
+  constants.clear();
+  uint32_t len = 0;
+  size_t pos = 0;
+  // constants
+  len = READ(uint32_t);
+  len += 4;// len itself ocupy 4 bytes
+  //cout<<"len plus 4:0x"<<hex<<len<<endl;
+  while(pos < len){
+    uint8_t byte = READ(uint8_t);
+    //cout<<"pos:0x"<<(int)pos<<" type:"<<(int)byte<<endl;
+    switch(byte){
+      case VAL_NIL:
+        PUSHV(Value());
+        break;
+      case VAL_BOOL:{
+        bool b = READ(uint8_t);
+        PUSHV(Value(b));
+        break;
+      }
+      case VAL_NUMBER:{
+        uint32_t n = READ(uint32_t);
+        PUSHV(Value(n));
+        break;
+      }
+      case VAL_String:{
+        string  s;
+        uint8_t b;
+        while(true){
+          b = READ(uint8_t);
+          if(b == 0) break;
+          s.push_back(b);
+        }
+        PUSHV(Value(make_obj(s)));
+        break;
+      }
+      case VAL_Procedure:{
+        size_t offset = READ(size_t);
+        PUSHV(Value(make_obj("anony",0,offset)));
+        break;
+      }
+      default:
+        cerr<<"Unreachable!"<<endl;
+        exit(1);
+        break;
+    }
+  }
+
+  // instructions
+  while(pos<buffer.size()){
+    codes.push_back(buffer[pos]);
+    pos++;
+  }
+#undef PUSHV
+#undef READ
+}
+
+vector<uint8_t> Coder::genBytecode(){
+  std::ostringstream content;
+  // constants
+  uint32_t len = 0;
+  auto len_pos = content.tellp();
+  content.write(PtrCast<char>(&len),
+                sizeof(len));
+  for(auto const& val:constants){
+    content.write((char*)&val.type,1);
+    len+=1;
+    switch(val.type){
+      case VAL_NIL:
+        break;
+      case VAL_BOOL:
+        content.write((char*)&val.as.boolean,1);
+        len+=1;
+        break;
+      case VAL_NUMBER:
+        content.write((char*)&val.as.number,4);
+        len+=4;
+        break;
+      case VAL_String:{
+        string *s = AS_CSTRING(val);
+        content.write(s->c_str(),(*s).size()+1);
+        len+=(*s).size()+1;
+        break;
+      }
+      case VAL_Procedure:{
+        content.write((char*)&AS_PROCEDURE(val)->offset,sizeof(size_t));
+        len+=sizeof(size_t);
+        break;
+      }
+      default:
+        cerr<<"Unreachable!"<<endl;
+        exit(1);
+        break;
+    }
+  }
+  content.seekp(len_pos);
+  content.write((char*)&len,sizeof(len));
+  content.seekp(0,std::ios::end);
+
+  // instructions
+  content.write((char*)codes.data(),codes.size());
+  auto s = content.str();
+  return vector<uint8_t>(s.begin(),s.end());
+}
+
+bool Coder::readBinary(const char* fname){
+  std::ifstream ifs(fname,std::ios::binary);
+  if(ifs.fail()){
+    cerr<<"Can not open file "<<fname<<endl;
+    return false;
+  }
+  vector<uint8_t> buffer;
+  uint32_t check;
+  ifs.read((char*)&check,4);
+  //cout<<"version:"<<hex<<check<<endl;
+  if(ifs.fail() or check != header){
+    cerr<<"Not a bindlang bytecode file!"<<hex<<check<<endl;
+    return false;
+  }
+  ifs.read((char*)&check,4);
+  if(ifs.fail() or not compareVersion(check)){
+    cerr<<"Different version with vm "<<hex<<check<<endl;
+    return false;
+  }
+  while(true){
+    uint8_t b = ifs.get();
+    if(ifs.eof()) break;
+    buffer.push_back(b);
+  }
+  parseBytecode(buffer);
+  return true;
+}
+
+bool Coder::writeBinary(const char* fname){
+  auto content = genBytecode();
+  std::ofstream ofs(fname,std::ios::binary);
+  if(ofs.fail()){
+    cerr<<"Can not open file "<<fname<<endl;
+    return false;
+  }
+  ofs.write(PtrCast<char>(&header),sizeof(header));
+  uint32_t ver_info = ((1 & 0xfff)<<20)
+                     |((1 & 0xff) <<12)
+                     |( 1 & 0xfff);
+  ofs.write(PtrCast<char>(&ver_info),sizeof(ver_info));
+  ofs.write((char*)content.data(),content.size());
+  return true;
+}
+
+bool Coder::compareVersion(uint32_t check){
+  uint32_t ver_info = ((1 & 0xfff)<<20)
+                     |((1 & 0xff) <<12)
+                     |( 1 & 0xfff);
+  return check == ver_info;
+}
 
 void Coder::pushInst(OpCode opc,uint32_t opr){
   Inst inst = {static_cast<uint32_t>(opc),opr};
@@ -22,32 +187,22 @@ void Coder::CNST(Value v){
   pushInst(OpCode::CNST,constants.size()-1);
 }
 
-void Coder::PUSH(){
-  pushInst(OpCode::PUSH);
-}
+#define INST1(F) \
+  void Coder::F(){                              \
+    pushInst(OpCode::F);                        \
+  }
+#define INST4(F)\
+  void Coder::F(uint32_t idx){                              \
+    pushInst(OpCode::F,idx);                              \
+  }
 
-void Coder::POP(){
-  pushInst(OpCode::POP);
-}
-
-void Coder::SETL(uint32_t idx){
-  pushInst(OpCode::SETL,idx);
-}
-
-void Coder::GETL(uint32_t idx){
-  pushInst(OpCode::GETL,idx);
-}
-
-void Coder::RET(){
-  pushInst(OpCode::RET);
-}
-
-void Coder::PRINT(){
-  pushInst(OpCode::PRINT);
-}
-
-void Coder::JUMP(uint32_t offset){
-  pushInst(OpCode::JUMP,offset);
-}
+INST1(HALT);
+INST1(RET);
+INST1(PUSH);
+INST1(POP);
+INST4(SYSCALL);
+INST4(JUMP);
+INST4(GETL);
+INST4(SETL);
 
 }

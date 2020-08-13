@@ -34,21 +34,33 @@ foldl-t = \f i t
             h(+(n 1) f(a take(t n))))
          h(0 i))
 
+foldl-l = \f i l
+->if(empty?(l)
+     i
+     foldl-l(f f(i hd(l)) tl(l)))
+
 foldr-t = \f i t
-->begin(h=\n a->
+->begin(h=\n a ->
         if(lt(n 0)
            a
            h(-(n 1) f(take(t n) a)))
         h(-(len(t) 1) i))
 
 range-t = \n
-->begin(h=\c t->
+->begin(h=\c t ->
         if(eq(c n)
            t
-           h(+(c 1) +(t <c>)))
+           h(c.+1 +(t <c>)))
         h(0 <>))
 
-times = \f->\n
+range-l = \n
+->begin(h=\c l ->
+        if(eq(c n)
+           l
+           h(c.+1 cons(c l)))
+        h(0 []))
+
+times = \f ->\n
 ->while(le(i n)
         f(i)
         i=i.+1|i=1)
@@ -58,12 +70,14 @@ if(eq( _FILE _MAIN)
    begin(
          t = < 1 2 3 4 >
          map-t(\x->println(+(x 1)) t)
-         println("foldl:"foldl-t(- 15 t))
-         println("foldr:"foldr-t(- 15 t))
+         println("foldl tuple:"foldl-t(- 15 t))
+         println("foldr tuple:"foldr-t(- 15 t))
          \t->while(lt(i len(t))
                    println(take(t i))
                    i=+1(i)|i=0)(range-t(5))
+
          lst = [1 2 3 4 5]
          println(filter-l(\x->gt(x 3) map-l(+1 lst)))
+         println("foldl list:" foldl-l(+ 0 lst))
          )
-   ) 
+   )

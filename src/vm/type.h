@@ -1,6 +1,7 @@
 #ifndef __type__
 #define __type__
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <memory>
 #include <vector>
@@ -8,11 +9,15 @@
 
 namespace bindlang::vm{
 
-struct Env;//declare ahead
-using EnvPtr = std::shared_ptr<Env>;
-using std::cout,std::endl,std::cerr,std::string;
-using std::vector,std::unordered_map;
-using std::move;
+class  Env;//declare ahead
+class  VM;
+using  EnvPtr = std::shared_ptr<Env>;
+using  word = uint32_t;
+using  thunk = bool(*)(VM&);
+using  std::cout,std::endl,std::cerr,std::string;
+using  std::setw,std::hex;
+using  std::vector,std::unordered_map;
+using  std::move;
 
 template <typename T,typename U>
 T* PtrCast(U *ptr){

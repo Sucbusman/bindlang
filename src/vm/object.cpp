@@ -2,7 +2,7 @@
 
 namespace bindlang::vm{
 
-void VM::ifgc(){
+void ifgc(){
   if(bytesAllocated == 0xffff){
     recycleMem();
   }else{
@@ -10,37 +10,35 @@ void VM::ifgc(){
   }
 }
 
-void VM::recycleMem(){
+void recycleMem(){
   
 }
 
-Obj* VM::copy_obj(Obj* obj){
-  switch(obj->type){
-    case (int)objType::String:{
-      ObjString *obj2 = (ObjString*)obj;
-      return make_obj(obj2->s);
-    }
-  }
-}
-
-ObjString* VM::make_obj(string& s){
+size_t bytesAllocated;
+Obj* objchain;
+ObjString* make_obj(string& s){
   //ifgc();
   auto o = new ObjString(string(s),objchain);
   objchain = o;
   return o;
 }
 
-ObjString* VM::make_obj(const char* s){
+ObjString* make_obj(const char* s){
   //ifgc();
   auto o = new ObjString(string(s),objchain);
   objchain = o;
   return o;
 }
 
-Value VM::copy_val(Value const& v){
+ObjProcedure* make_obj(string name,int arity,size_t offset){
+  auto o = new ObjProcedure(name,arity,offset,objchain);
+  objchain = o;
+  return o;
+}
+
+Value copy_val(Value const& v){
   auto val = Value();
   val.type = v.type;
-  val.immutable = v.immutable;
   switch(v.type){
     case VAL_BOOL:
     case VAL_NIL:
@@ -49,7 +47,7 @@ Value VM::copy_val(Value const& v){
       break;
     case VAL_String:{
       auto o =v.as.obj;
-      val.as.obj = copy_obj(o);
+      val.as.obj = o->clone(&objchain);
     }
   }
   return val;

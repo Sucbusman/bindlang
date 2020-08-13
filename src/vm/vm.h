@@ -12,9 +12,11 @@ namespace bindlang { namespace vm{
 class VM{
  public:
   VM(){}
-  VM(vector<std::uint8_t> &&codes,vector<Value> &&constants)
+  VM(vector<std::uint8_t> &&codes,
+     vector<Value> &&constants)
     :rom(codes),constants(constants){pc=rom.data();}
-  void init(vector<std::uint8_t>&&codes,vector<Value>&&constants);
+  void init(vector<std::uint8_t>&&codes,
+            vector<Value>&&constants);
 
   void reset();
   bool run();
@@ -26,26 +28,30 @@ class VM{
 
   // vm
   vector<std::uint8_t> rom;
-  vector<Value>        values;
+  vector<Value>        constants;
   uint8_t* pc;
+
+  // value stack
+  vector<Value>        values;
+  void  push(Value val);
+  Value pop();
+
+  // regs
   Value reg_val;
+  word  base_ptr;
+  word  stack_ptr;
 
-  // table
-  unordered_map<std::string,Value> globals;
-  vector<Value> constants;
-
-  // gc
-  size_t bytesAllocated;
-  Obj* objchain;
-  ObjString* make_obj(const char* s);
-  ObjString* make_obj(string& s);
-  void ifgc();
-  void recycleMem();
-  // value
-  Value      copy_val(Value const& v);
-  Obj*       copy_obj(Obj* obj);
-
+  // syscall
+  vector<thunk> syscalls;
+  void standardSyscalls();
+  
+  // env
+  Env toplevel;
+  stack<Env> envs;
+  void standardEnv();
 };
+
+bool sys_print(VM& vm);
 
 } }
 

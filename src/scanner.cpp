@@ -36,7 +36,7 @@ inline bool isop(const char& c){
   switch(c){
     case '+':
     case '-':
-    case '*':
+ i   case '*':
     case '/':
     case '%':
       return true;
