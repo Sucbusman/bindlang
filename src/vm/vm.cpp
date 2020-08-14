@@ -2,6 +2,7 @@
 #include <iostream>
 #include "value.h"
 #include "vm.h"
+
 #include "coder.h"
 
 namespace bindlang { namespace vm{
@@ -53,12 +54,28 @@ Value VM::pop(){
   return values[sp];
 }
 
-void VM::dumpstack(){
-  cout<<"===stack==="<<endl;
-  for(auto it=values.rbegin();it!=values.rend();it++){
-    inspectVal(*it);
+void printIndent(int n){
+  while(n--)
+    cout<<' ';
+}
+
+void VM::dumpRegs(){
+  cout<<"  sp:0x"<<hex<<sp<<" bp:0x"<<hex<<bp<<" val_reg:";
+  printVal(reg_val);
+}
+
+void VM::dumpStack(){
+  for(int it=sp-1;it>=0;it--){
+    if(it==bp){
+      printIndent(3);
+      cout<<'>';
+    }
+    else {
+      printIndent(4);
+    }
+    inspectVal(values[it]);
   }
-  cout<<"===end==="<<endl;
+  cout<<"    ------------------------------------"<<endl;
 }
 
 bool VM::run(){
@@ -68,22 +85,26 @@ bool VM::run(){
 #define wordp  ((uint32_t*)ip)
 #define dwordp ((uint64_t*)ip)
 #define WHEN(OP) case (uint8_t)OpCode::OP
-  uint8_t byte;
+#define BINARY_OP(type,op)                      \
+  do{auto r = pop();auto l = pop();            \
+  word = (l.as.type op r.as.type);              \
+  reg_val = Value(word);}while(0)
   uint32_t word;
   uint64_t dword;
   while(true){
+    //disas_inst(ip);
     uint8_t opc = EAT(uint8_t);
-    DEBUG("0x"<<left<<setw(4)
-          <<hex<<ip-1-rom.data()<<" come "<<opcTable[opc]);
     switch(opc){
-      WHEN(SETL):
-        word = EAT(uint32_t);
-        values[bp+word] = reg_val;
+      WHEN(SETL):{
+        int32_t offset = EAT(int32_t);
+        values[bp+offset] = reg_val;
         break;
-      WHEN(GETL):
-        word = EAT(uint32_t);
-        reg_val = values[bp+word];
+      }
+      WHEN(GETL):{
+        int32_t offset = EAT(int32_t);
+        reg_val = values[bp+offset];
         break;
+      }
       WHEN(SETG):
       WHEN(GETG):
         break;
@@ -106,28 +127,16 @@ bool VM::run(){
         dword = EAT(uint64_t);
         reg_val = Value(dword);
         break;
-      WHEN(ADD):{
-        auto l = pop();auto r = pop();
-        word = l.as.number+r.as.number;
-        reg_val = Value(word);
-        break;
-      }
-      WHEN(MINUS):{
-        auto r = pop();auto l = pop();
-        word = l.as.number-r.as.number;
-        reg_val = Value(word);
-        break;
-      }
-      WHEN(MULT):{
-        auto r = pop();auto l = pop();
-        word = l.as.number*r.as.number;
-        reg_val = Value(word);
-        break;
-      }
-      WHEN(DIVIDE):{
-        auto r = pop();auto l = pop();
-        word = l.as.number/r.as.number;
-        reg_val = Value(word);
+      WHEN(ADD):    BINARY_OP(number, +);break;
+      WHEN(MINUS):  BINARY_OP(number, -);break;
+      WHEN(MULT):   BINARY_OP(number, *);break;
+      WHEN(DIVIDE): BINARY_OP(number, /);break;
+      WHEN(GT):     BINARY_OP(number, >);break;
+      WHEN(LT):     BINARY_OP(number, <);break;
+      WHEN(EQ):{
+        auto r = pop();
+        auto l = pop();
+        reg_val = Value(valueEqual(r, l));
         break;
       }
       WHEN(PUSH):
@@ -136,17 +145,25 @@ bool VM::run(){
       WHEN(POP):
         reg_val = pop();
         break;
+      WHEN(TCALL):
       WHEN(CALL):{
          auto func = AS_PROCEDURE(reg_val);
-         uint32_t arity = *wordp;ip += 4;
-         frames.push_back( callFrame{ip,bp,sp});
-         bp = sp-arity;
+         frames.push_back( callFrame(ip,bp,sp));
+         bp = sp-func->arity;
          ip = rom.data()+func->offset;//jump
          break;
       }
-      WHEN(TCALL):
-      WHEN(JUMP):
-        ip += *wordp;break;
+      WHEN(JMP):
+        ip += *(int32_t*)ip-1;break;
+      WHEN(JNE):{
+        if(not truthy(reg_val)){
+          ip += *(int32_t*)ip-1;
+          //DEBUG("jump to:0x"<<hex<<(int64_t)(ip-rom.data()));
+        }else {
+          EAT(uint32_t);
+        }
+        break;
+      }
       WHEN(RET):{
         sp = frames.back().sp;
         bp = frames.back().bp;
@@ -158,59 +175,88 @@ bool VM::run(){
         return true;
       }
       default:{
+        cerr<<opcTable[opc]<<" not implemented in vm run!"<<endl;
         return false;
       }
     }
-    //dumpstack();
+    //dumpRegs();
+    //dumpStack();
   }
   return false;
+#undef EAT
+}
+
+uint8_t* VM::disas_inst(uint8_t* pc){
+#define EAT(T) (*(T*)pc);pc+=sizeof(T)
+  uint8_t opc = EAT(uint8_t);
+  cout<<"0x"<<left<<setw(4)<<hex<<pc-1-rom.data()
+      <<GREENCODE<<opcTable[opc]<<DEFAULT<<' ';
+  switch (opc){
+    WHEN(SETL):
+    WHEN(GETL):
+    WHEN(SETG):
+    WHEN(GETG):{
+      int32_t n = EAT(int32_t);
+      cout<<dec<<n<<endl;
+      break;
+    }
+    WHEN(CNST):{
+      uint32_t n = EAT(uint32_t);
+      cout<<dec<<n<<"  #";
+      inspectVal(constants[n]);
+      break;
+    }
+    WHEN(CNSH):{
+      uint64_t n = EAT(uint64_t);
+      cout<<dec<<n<<"  #";
+      inspectVal(constants[n]);
+      break;
+    }
+    WHEN(IMM):{
+      uint64_t n = EAT(uint64_t);
+      cout<<dec<<n<<endl;
+      break;
+    }
+    WHEN(JNE):
+    WHEN(JMP):{
+      int32_t n = EAT(int32_t);
+      auto jmp_ip = pc-5-rom.data()+n;
+      cout<<dec<<n<<"  #0x"<<hex<<jmp_ip<<endl;
+      break;
+    }
+    WHEN(SYSCALL):{
+      uint32_t n = EAT(uint32_t);
+      cout<<dec<<n<<endl;
+      break;
+    }
+    WHEN(FUN):
+    WHEN(ADD):
+    WHEN(MINUS):
+    WHEN(MULT):
+    WHEN(DIVIDE):
+    WHEN(GT):
+    WHEN(LT):
+    WHEN(EQ):
+    WHEN(PUSH):
+    WHEN(POP):
+    WHEN(CALL):
+    WHEN(TCALL):
+    WHEN(HALT):
+    WHEN(RET):
+      cout<<endl;
+      break;
+    default:{
+      cout<<opcTable[opc]<<" disassemble unimplemented!"<<endl;
+      break;
+    }
+  }
+  return pc;
+#undef EAT
 }
 
 void VM::disassemble(){
   while(ip-rom.data()<rom.size()){
-    uint8_t opc = EAT(uint8_t);
-    switch (opc){
-      WHEN(SETL):
-      WHEN(GETL):
-      WHEN(SETG):
-      WHEN(GETG):
-      WHEN(SYSCALL):
-      WHEN(FUN):
-      WHEN(CALL):
-      WHEN(CNST):{
-        cout<<"0x"<<left<<setw(4)<<ip-1-rom.data()
-            <<" ["<<opcTable[opc]<<' ';
-        uint32_t n = EAT(uint32_t);
-        n = n & VM_INST_IMM_MASK;
-        cout<<hex<<n<<']'<<endl;
-        break;
-      }
-      WHEN(CNSH):
-      WHEN(IMM):{
-        cout<<"0x"<<left<<setw(4)<<ip-1-rom.data()
-            <<" ["<<opcTable[opc]<<' ';
-        uint64_t n = EAT(uint64_t);
-        cout<<hex<<n<<']'<<endl;
-        break;
-      }
-      WHEN(ADD):
-      WHEN(MINUS):
-      WHEN(MULT):
-      WHEN(DIVIDE):
-      WHEN(PUSH):
-      WHEN(POP):
-      WHEN(TCALL):
-      WHEN(HALT):
-      WHEN(RET):{
-        cout<<"0x"<<left<<setw(4)<<ip-1-rom.data()
-            <<" ["<<opcTable[opc]<<']'<<endl;
-        break;
-      }
-      default:{
-        cout<<opcTable[opc]<<" disassemble unimplemented!"<<endl;
-        break;
-      }
-    }
+    ip=disas_inst(ip);
   }
 #undef WHEN
 }
@@ -220,6 +266,4 @@ bool sys_print(VM& vm){
   return true;
 }
 
-#undef NEXT
-#undef EAT
 } }

@@ -4,35 +4,51 @@ using namespace bindlang::vm;
 
 int main(){
   auto coder = Coder();
+  // coder.IMM(1u);
+  // coder.PUSH();
+  // coder.SYSCALL(0);
+  // coder.IMM(2u);
+  // coder.SETL(0);
+  // coder.IMM(3u);
+  // coder.GETL(0);
+  // coder.SYSCALL(0);
+  // coder.HALT();
   //_start:
   auto _start = coder.tellp();
   coder.CNST(Value(make_obj("inc",1,0)));
   coder.PUSH();
-  coder.IMM(2u);
+  coder.IMM(0u);
+  coder.PUSH();
+  auto  b1 = coder.tellp();
+  coder.GETL(1);
   coder.PUSH();
   coder.GETL(0);
-  coder.CALL(1);
+  coder.CALL();
+  coder.POP();
+  coder.GETL(1);
+  coder.PUSH();
+  coder.IMM(6u);
+  coder.PUSH();
+  coder.EQ();
+  coder.JNE((uint32_t)(int64_t)(b1-coder.tellp()));
   coder.HALT();
   //inc:
   auto inc = coder.tellp();
   coder.CNST(Value(1u));
   coder.PUSH();
   coder.ADD();
-  coder.SYSCALL(0);
+  coder.SETL(-1);
+  coder.SYSCALL(0);//print
   coder.RET();
 
   // patch func offset
-  cout<<"inc offset when init:"<<inc-_start<<endl;
   coder.constants[0] = Value(make_obj("inc",1,inc-_start));
 
-  coder.writeBinary("bin");
-  coder.readBinary("bin");
+  //coder.writeBinary("bin");
+  //coder.readBinary("bin");
   auto vm = VM(move(coder.codes),move(coder.constants));
   cout<<"===dissameble==="<<endl;
   vm.disassemble();
-  //for(auto i:vm.constants){
-  //  printVal(i);
-  //}
   cout<<"===run==="<<endl;
   vm.reset();
   vm.run();

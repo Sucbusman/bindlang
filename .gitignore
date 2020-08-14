@@ -1,6 +1,7 @@
 obj/*
 src/vm/*.o
 src/vm/vm
+src/vm/*.blc
 src/vm/bin
 bindlang
 *.log

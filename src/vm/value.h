@@ -12,12 +12,15 @@
 #define VM_INST_IMM_MASK  ((1<<VM_INST_OPR_WIDTH)-1)
 
 #define VM_INSTALL_ALL_INST(f) \
-  f(GETL) f(GETG) f(SETL) f(SETG)                 \
-  f(CNST) f(CNSH) f(IMM)                          \
-  f(PUSH) f(POP)                                  \
-  f(FUN)  f(CALL) f(TCALL) f(RET) f(JUMP)         \
-  f(ADD)  f(MINUS) f(MULT) f(DIVIDE)              \
-  f(HALT) f(SYSCALL)
+  f(GETL) f(GETG)    f(SETL) f(SETG)                  \
+  f(CNST) f(CNSH)    f(IMM)                           \
+  f(PUSH) f(POP)                                      \
+  f(FUN)  f(CALL)    f(TCALL)    f(RET)               \
+  f(JMP)  f(JNE)                                      \
+  f(ADD)  f(MINUS)   f(MULT) f(DIVIDE)                \
+  f(EQ)   f(GT)      f(LT)                            \
+  f(HALT) f(SYSCALL) 
+  
 #define VM_EXPAND_LIST(i) i,
 #define VM_EXPAND_LIST_STR(i) #i,
 
@@ -105,6 +108,8 @@ struct Value{
 
 void printVal(Value const& val);
 void inspectVal(Value const& val);
+bool truthy(Value const& val);
+bool valueEqual(Value const&,Value const&);
 
 class Env{
  public:

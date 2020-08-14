@@ -2,6 +2,7 @@
 #define __coder__
 #include "value.h"
 #include "version.h"
+#include <cstdint>
 
 namespace bindlang::vm{
   
@@ -31,14 +32,18 @@ class Coder{
   void MINUS();
   void MULT();
   void DIVIDE();
+  void GT();
+  void LT();
+  void EQ();
   void RET();
   void HALT();
-  void CALL(uint32_t);
+  void CALL();
+  void JNE(uint32_t);
+  void JMP(uint32_t);
   void FUN(uint32_t);
   void SETL(uint32_t);
   void GETL(uint32_t);
   void SYSCALL(uint32_t);
-  void JUMP(uint32_t);
 private:
   uint32_t header = 0xdeadbeef;
 };

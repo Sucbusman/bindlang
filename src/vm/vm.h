@@ -13,6 +13,8 @@ typedef enum{
 }SYSCALL_TABLE;
 
 struct callFrame{
+  callFrame(uint8_t* ip,size_t bp,size_t sp)
+    :ip(ip),bp(bp),sp(sp){}
   uint8_t* ip;
   size_t   bp;
   size_t   sp;
@@ -31,12 +33,15 @@ class VM{
 
   void reset();
   bool run();
+  uint8_t* disas_inst(uint8_t*);
   void disassemble();
 
   // helper
   template<class... Args>
   bool error(Args... args);
-  void dumpstack();
+  void dumpStack();
+  void dumpRegs();
+
   // vm
   vector<std::uint8_t> rom;
   vector<Value>        constants;
