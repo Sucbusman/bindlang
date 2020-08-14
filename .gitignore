@@ -1,5 +1,7 @@
 obj/*
 src/vm/*.o
+src/vm/vm
+src/vm/bin
 bindlang
 *.log
 src/.ccls-cache/

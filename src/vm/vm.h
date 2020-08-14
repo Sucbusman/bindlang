@@ -8,13 +8,24 @@
 #include "value.h"
 
 namespace bindlang { namespace vm{
+typedef enum{
+  PRINT
+}SYSCALL_TABLE;
+
+struct callFrame{
+  uint8_t* ip;
+  size_t   bp;
+  size_t   sp;
+};
 
 class VM{
  public:
   VM(){}
   VM(vector<std::uint8_t> &&codes,
      vector<Value> &&constants)
-    :rom(codes),constants(constants){pc=rom.data();}
+    :rom(codes),constants(constants){
+    ip=rom.data();
+  }
   void init(vector<std::uint8_t>&&codes,
             vector<Value>&&constants);
 
@@ -25,21 +36,24 @@ class VM{
   // helper
   template<class... Args>
   bool error(Args... args);
-
+  void dumpstack();
   // vm
   vector<std::uint8_t> rom;
   vector<Value>        constants;
-  uint8_t* pc;
 
   // value stack
   vector<Value>        values;
   void  push(Value val);
   Value pop();
 
-  // regs
-  Value reg_val;
-  word  base_ptr;
-  word  stack_ptr;
+  // call frame
+  vector<callFrame> frames;
+
+  // register
+  uint8_t* ip;
+  Value    reg_val;
+  size_t   bp;
+  size_t   sp;
 
   // syscall
   vector<thunk> syscalls;

@@ -168,41 +168,68 @@ bool Coder::compareVersion(uint32_t check){
   return check == ver_info;
 }
 
-void Coder::pushInst(OpCode opc,uint32_t opr){
-  Inst inst = {static_cast<uint32_t>(opc),opr};
-  uint8_t *bytes = PtrCast<uint8_t>(&inst);
+void Coder::push5(OpCode opc,uint32_t opr){
+  codes.push_back((uint8_t)opc);
+  uint8_t *bytes = PtrCast<uint8_t>(&opr);
   codes.push_back(bytes[0]);
   codes.push_back(bytes[1]);
   codes.push_back(bytes[2]);
   codes.push_back(bytes[3]);
 }
 
-void Coder::pushInst(OpCode opc){
-  uint8_t *bytes = PtrCast<uint8_t>(&opc);
-  codes.push_back(bytes[0]);
+void Coder::push9(OpCode opc,uint64_t opr){
+  codes.push_back((uint8_t)opc);
+  uint8_t *bytes = PtrCast<uint8_t>(&opr);
+  for(auto i=0;i<8;i++){
+    codes.push_back(bytes[i]);
+  }
+}
+
+inline void Coder::push1(OpCode opc){
+  codes.push_back((uint8_t)opc);
+}
+
+size_t Coder::tellp(){
+  return codes.size()-1;
 }
 
 void Coder::CNST(Value v){
   constants.push_back(v);
-  pushInst(OpCode::CNST,constants.size()-1);
+  push5(OpCode::CNST,(uint32_t)(constants.size()-1));
+}
+
+void Coder::CNSH(Value v){
+  constants.push_back(v);
+  push9(OpCode::CNST,constants.size()-1);
 }
 
 #define INST1(F) \
   void Coder::F(){                              \
-    pushInst(OpCode::F);                        \
+    push1(OpCode::F);                        \
   }
-#define INST4(F)\
+#define INST5(F)\
   void Coder::F(uint32_t idx){                              \
-    pushInst(OpCode::F,idx);                              \
+    push5(OpCode::F,idx);                              \
+  }
+#define INST9(F) \
+  void Coder::F(uint64_t n){ \
+    push9(OpCode::F,n);   \
   }
 
 INST1(HALT);
 INST1(RET);
 INST1(PUSH);
 INST1(POP);
-INST4(SYSCALL);
-INST4(JUMP);
-INST4(GETL);
-INST4(SETL);
+INST1(ADD);
+INST1(MINUS);
+INST1(MULT);
+INST1(DIVIDE);
+INST5(CALL);
+INST5(SYSCALL);
+INST5(JUMP);
+INST5(GETL);
+INST5(FUN);
+INST5(SETL);
+INST9(IMM);
 
 }

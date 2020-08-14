@@ -12,7 +12,6 @@ namespace bindlang::vm{
 class  Env;//declare ahead
 class  VM;
 using  EnvPtr = std::shared_ptr<Env>;
-using  word = uint32_t;
 using  thunk = bool(*)(VM&);
 using  std::cout,std::endl,std::cerr,std::string;
 using  std::setw,std::hex;

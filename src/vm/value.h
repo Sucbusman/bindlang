@@ -11,19 +11,28 @@
 #define VM_INST_OPR_WIDTH (32-VM_INST_OPC_WIDTH)
 #define VM_INST_IMM_MASK  ((1<<VM_INST_OPR_WIDTH)-1)
 
-#define VM_INSTALL_ALL(f) \
-  f(GETL) f(GETG) f(SETL) f(SETG) f(FUN)    \
-  f(CNST) f(PUSH) f(POP) f(RET) f(JUMP)     \
-  f(CALL) f(TCALL) f(HALT) f(SYSCALL)
+#define VM_INSTALL_ALL_INST(f) \
+  f(GETL) f(GETG) f(SETL) f(SETG)                 \
+  f(CNST) f(CNSH) f(IMM)                          \
+  f(PUSH) f(POP)                                  \
+  f(FUN)  f(CALL) f(TCALL) f(RET) f(JUMP)         \
+  f(ADD)  f(MINUS) f(MULT) f(DIVIDE)              \
+  f(HALT) f(SYSCALL)
 #define VM_EXPAND_LIST(i) i,
-#define VM_EXPAND_LABEL(i) &&VML_##i,
-#define VM_LABEL(l) VML_##l:
+#define VM_EXPAND_LIST_STR(i) #i,
+
+#define VM_INSTALL_ALL_VAL(f)\
+  f(NIL) f(BOOL) f(NUMBER) f(String) f(Procedure)
+#define VM_EXPAND_VAL(i) VAL_##i,
 
 namespace bindlang  { namespace vm{
 
-enum class OpCode : uint32_t{
-  VM_INSTALL_ALL(VM_EXPAND_LIST)
+enum class OpCode : uint8_t{
+  VM_INSTALL_ALL_INST(VM_EXPAND_LIST)
 };
+
+extern const char* opcTable[];
+extern const char* valTable[];
 
 enum class objType : uint8_t {
   String,
@@ -51,7 +60,7 @@ struct ObjString:Obj{
 
 struct ObjProcedure:Obj{
   ObjProcedure(string name,int arity,
-               word offset,Obj *next)
+               uint32_t offset,Obj *next)
     :Obj((uint8_t)objType::Procedure,next),
      name(name),arity(arity),offset(offset){}
   Obj* clone(Obj** pchain) override {
@@ -70,27 +79,23 @@ struct ObjProcedure:Obj{
 #define AS_PROCEDURE(v) ((ObjProcedure*)AS_OBJ(v))
 
 typedef enum{
-  VAL_NIL,
-  VAL_BOOL,
-  VAL_NUMBER,
-  VAL_String,
-  VAL_Procedure
+  VM_INSTALL_ALL_VAL(VM_EXPAND_VAL)
 }val_type;
 
 struct Value{
   uint8_t type;
   union{
-    size_t address;
     bool boolean;
-    int32_t number;
+    int64_t number;
+    uint64_t address;
     Obj *obj;
   }as;
   Value():type(VAL_NIL){}
-  Value(size_t address)
-    :type(VAL_NUMBER){as.address = address;}
   Value(bool boolean)
     :type(VAL_BOOL){as.boolean=boolean;}
   Value(uint32_t number)
+    :type(VAL_NUMBER){as.number = number;}
+  Value(uint64_t number)
     :type(VAL_NUMBER){as.number = number;}
 #define OBJ2VAL(T)                               \
   Value(Obj##T *obj):type(VAL_##T){as.obj = obj;}
@@ -98,11 +103,8 @@ struct Value{
   OBJ2VAL(Procedure);
 };
 
-void printVal(Value val);
-struct Inst{
-  uint32_t opc:VM_INST_OPC_WIDTH;
-  uint32_t opr:VM_INST_OPR_WIDTH;
-};
+void printVal(Value const& val);
+void inspectVal(Value const& val);
 
 class Env{
  public:

@@ -1,4 +1,6 @@
+#include <bits/stdint-uintn.h>
 #include <iostream>
+#include "value.h"
 #include "vm.h"
 #include "coder.h"
 
@@ -15,17 +17,20 @@ bool VM::error(Args...args){
 }
 
 void VM::reset(){
-  pc = (this->rom).data();
+  ip = (this->rom).data();
   syscalls.clear();
-  values.clear();
   standardSyscalls();
-  base_ptr = 0;
-  stack_ptr = 0;
+  bp  = 0;
+  sp  = 0;
 }
 
 void VM::init(vector<std::uint8_t> &&codes,
               vector<Value> &&constants){
-  this->rom = codes; this->constants=constants;
+  this->rom = codes;
+  this->constants=constants;
+  values.clear();
+  bp = 0;
+  sp = 0;
   reset();
 }
 
@@ -34,139 +39,180 @@ void VM::standardSyscalls(){
 }
 
 void VM::push(Value val){
-  if(stack_ptr<values.size()){
-    values[stack_ptr] = val;
-    stack_ptr++;
+  if(sp<values.size()){
+    values[sp] = val;
+    sp++;
   }else{
     values.push_back(val);
-    stack_ptr = values.size();
+    sp = values.size();
   }
 }
 
 Value VM::pop(){
-  stack_ptr--;
-  return values[stack_ptr];
+  sp--;
+  return values[sp];
+}
+
+void VM::dumpstack(){
+  cout<<"===stack==="<<endl;
+  for(auto it=values.rbegin();it!=values.rend();it++){
+    inspectVal(*it);
+  }
+  cout<<"===end==="<<endl;
 }
 
 bool VM::run(){
-#define NEXT(len)                            \
-  do{                                        \
-    pc+=len;                                 \
-    inst = PtrCast<Inst>(pc);                \
-    goto *instLables[inst->opc];}while(0)
-  Inst *inst;
-  const void* instLables[]={VM_INSTALL_ALL(VM_EXPAND_LABEL)};
-  NEXT(0);
-  VM_LABEL(SETL){
-    values[inst->opr] = reg_val;
-    NEXT(4);
+#define EAT(T) (*(T*)ip);ip+=sizeof(T)
+#define PEEK(T) (*(T*)ip)
+#define bytep  ((uint8_t*)ip)
+#define wordp  ((uint32_t*)ip)
+#define dwordp ((uint64_t*)ip)
+#define WHEN(OP) case (uint8_t)OpCode::OP
+  uint8_t byte;
+  uint32_t word;
+  uint64_t dword;
+  while(true){
+    uint8_t opc = EAT(uint8_t);
+    DEBUG("0x"<<left<<setw(4)
+          <<hex<<ip-1-rom.data()<<" come "<<opcTable[opc]);
+    switch(opc){
+      WHEN(SETL):
+        word = EAT(uint32_t);
+        values[bp+word] = reg_val;
+        break;
+      WHEN(GETL):
+        word = EAT(uint32_t);
+        reg_val = values[bp+word];
+        break;
+      WHEN(SETG):
+      WHEN(GETG):
+        break;
+      WHEN(SYSCALL):
+        word = EAT(uint32_t);
+        if(not syscalls[word](*this)){
+          return false;
+        }
+        break;
+      WHEN(FUN):
+      WHEN(CNST):
+        reg_val = constants[*wordp];
+        ip+=4;
+        break;
+      WHEN(CNSH):
+        reg_val = constants[*dwordp];
+        ip+=8;
+        break;
+      WHEN(IMM):
+        dword = EAT(uint64_t);
+        reg_val = Value(dword);
+        break;
+      WHEN(ADD):{
+        auto l = pop();auto r = pop();
+        word = l.as.number+r.as.number;
+        reg_val = Value(word);
+        break;
+      }
+      WHEN(MINUS):{
+        auto r = pop();auto l = pop();
+        word = l.as.number-r.as.number;
+        reg_val = Value(word);
+        break;
+      }
+      WHEN(MULT):{
+        auto r = pop();auto l = pop();
+        word = l.as.number*r.as.number;
+        reg_val = Value(word);
+        break;
+      }
+      WHEN(DIVIDE):{
+        auto r = pop();auto l = pop();
+        word = l.as.number/r.as.number;
+        reg_val = Value(word);
+        break;
+      }
+      WHEN(PUSH):
+        push(reg_val);
+        break;
+      WHEN(POP):
+        reg_val = pop();
+        break;
+      WHEN(CALL):{
+         auto func = AS_PROCEDURE(reg_val);
+         uint32_t arity = *wordp;ip += 4;
+         frames.push_back( callFrame{ip,bp,sp});
+         bp = sp-arity;
+         ip = rom.data()+func->offset;//jump
+         break;
+      }
+      WHEN(TCALL):
+      WHEN(JUMP):
+        ip += *wordp;break;
+      WHEN(RET):{
+        sp = frames.back().sp;
+        bp = frames.back().bp;
+        ip = frames.back().ip;
+        frames.pop_back();
+        break;
+      }
+      WHEN(HALT):{
+        return true;
+      }
+      default:{
+        return false;
+      }
+    }
+    //dumpstack();
   }
-  VM_LABEL(GETL){
-    reg_val = values[inst->opr];
-    NEXT(4);
-  }
-  VM_LABEL(SETG){
-    envs.top().set(*AS_CSTRING(constants[inst->opr]),reg_val);
-    NEXT(4);
-  }
-  VM_LABEL(GETG){
-    auto s = AS_CSTRING(constants[inst->opr]);
-    auto val = envs.top().get(*s);
-    if( val == nullptr)
-      return error(*s,"Not found");
-    reg_val = *val;
-    NEXT(4);
-  }
-  VM_LABEL(FUN){
-    NEXT(4);
-  }
-  VM_LABEL(CNST){
-    DEBUG("come cns");
-    reg_val = constants[inst->opr];
-    NEXT(4);
-  }
-  VM_LABEL(PUSH){
-    DEBUG("come push");
-    push(reg_val);
-    NEXT(1);
-  }
-  VM_LABEL(POP){
-    DEBUG("come pop");
-    reg_val = pop();
-    NEXT(1);
-  }
-  VM_LABEL(RET){
-    DEBUG("come ret");
-    stack_ptr = base_ptr;
-    base_ptr = pop().as.address;
-    pc = (uint8_t*)pop().as.address;
-    NEXT(1);
-  }
-  VM_LABEL(HALT){
-    return true;
-  }
-  VM_LABEL(JUMP){
-    DEBUG("come jump pc "<<hex<<setw(4)<<pc-rom.data());
-    pc += inst->opr;
-    DEBUG("| pc "<<hex<<setw(4)<<pc-rom.data()); 
-    NEXT(0);
-  }
-  VM_LABEL(CALL){
-    DEBUG("come call");
-    auto func = AS_PROCEDURE(constants[inst->opr]);
-    values.push_back( Value((size_t)pc+4) );
-    values.push_back( Value(base_ptr));
-    pc = rom.data()+func->offset;
-    NEXT(0);
-  }
-  VM_LABEL(TCALL){
-    NEXT(4);
-  }
-  VM_LABEL(SYSCALL){
-    auto syscall = syscalls[inst->opr];
-    if(not syscall(*this))
-      return error("Syscall ",inst->opr,"failed!");
-    else
-      NEXT(4);
-  }
-  return true;
+  return false;
 }
 
 void VM::disassemble(){
-  Inst *inst;
-  const void* instLables[]={VM_INSTALL_ALL(VM_EXPAND_LABEL)};
-  NEXT(0);
-#define BYTE4(OP)                                              \
-  VM_LABEL(OP){                                                \
-    cout<<setw(4)<<pc-rom.data()                               \
-        <<'['<<#OP<<' '<<std::hex<<(int)inst->opr<<']'<<endl;  \
-    NEXT(4);                                                   \
+  while(ip-rom.data()<rom.size()){
+    uint8_t opc = EAT(uint8_t);
+    switch (opc){
+      WHEN(SETL):
+      WHEN(GETL):
+      WHEN(SETG):
+      WHEN(GETG):
+      WHEN(SYSCALL):
+      WHEN(FUN):
+      WHEN(CALL):
+      WHEN(CNST):{
+        cout<<"0x"<<left<<setw(4)<<ip-1-rom.data()
+            <<" ["<<opcTable[opc]<<' ';
+        uint32_t n = EAT(uint32_t);
+        n = n & VM_INST_IMM_MASK;
+        cout<<hex<<n<<']'<<endl;
+        break;
+      }
+      WHEN(CNSH):
+      WHEN(IMM):{
+        cout<<"0x"<<left<<setw(4)<<ip-1-rom.data()
+            <<" ["<<opcTable[opc]<<' ';
+        uint64_t n = EAT(uint64_t);
+        cout<<hex<<n<<']'<<endl;
+        break;
+      }
+      WHEN(ADD):
+      WHEN(MINUS):
+      WHEN(MULT):
+      WHEN(DIVIDE):
+      WHEN(PUSH):
+      WHEN(POP):
+      WHEN(TCALL):
+      WHEN(HALT):
+      WHEN(RET):{
+        cout<<"0x"<<left<<setw(4)<<ip-1-rom.data()
+            <<" ["<<opcTable[opc]<<']'<<endl;
+        break;
+      }
+      default:{
+        cout<<opcTable[opc]<<" disassemble unimplemented!"<<endl;
+        break;
+      }
+    }
   }
-#define BYTE1(OP)                                              \
-  VM_LABEL(OP){                                                \
-    cout<<setw(4)<<pc-rom.data()<<'['<<#OP<<']'<<endl;         \
-    NEXT(1);                                                   \
-  }
-  BYTE4(SETL);
-  BYTE4(GETL);
-  BYTE4(SETG);
-  BYTE4(GETG);
-  BYTE4(FUN);
-  BYTE4(CNST);
-  BYTE4(CALL);
-  BYTE4(TCALL);
-  BYTE4(SYSCALL);
-  BYTE4(JUMP);
-  BYTE1(PUSH);
-  BYTE1(POP);
-  BYTE1(RET);
-  VM_LABEL(HALT){
-    cout<<"HALT"<<endl;
-    return;
-  }
-
-#undef BYTE4
-#undef BYTE1
+#undef WHEN
 }
 
 bool sys_print(VM& vm){
@@ -175,4 +221,5 @@ bool sys_print(VM& vm){
 }
 
 #undef NEXT
+#undef EAT
 } }
