@@ -1,0 +1,36 @@
+# fab
+"
+"
+100
+@pnewline 1
+============
+IMM 1
+PUSH
+PUSH
+PUSH       #stack:n2 n2 n1
+CNST 2
+CALL
+CNST 2
+CALL
+@l
+ADD
+PUSH       #stack:n2 n3
+CNST 2
+CALL
+GETL 0
+PUSH       #n2 n3 n2
+GETL 1
+SETL 0     #n3 n3 n2
+PUSH       #n3 n3 n2 n3 stop
+CNST 1
+PUSH
+GT         #n3 n3 n2
+JNE @l
+HALT
+
+@pnewline
+GETL 0
+SYSCALL 0
+CNST 0
+SYSCALL 0
+RET

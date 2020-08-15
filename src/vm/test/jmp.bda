@@ -1,0 +1,17 @@
+"great"
+"less"
+==============
+IMM 1
+PUSH
+IMM 2
+PUSH
+GT
+SYSCALL 1
+JNE @l
+CNST 0
+SYSCALL 0
+HALT
+@l
+CNST 1
+SYSCALL 0
+HALT

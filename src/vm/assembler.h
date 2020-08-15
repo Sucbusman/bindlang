@@ -26,7 +26,8 @@ public:
     cache.push_back(lchar);
     in>>nchar;
   }
-  bool run();
+  void write(const char* path);
+  void scan();
   Coder coder;
 private:
   template <class... Args>

@@ -26,7 +26,7 @@ class VM{
   VM(vector<std::uint8_t> &&codes,
      vector<Value> &&constants)
     :rom(codes),constants(constants){
-    ip=rom.data();
+    reset();
   }
   void init(vector<std::uint8_t>&&codes,
             vector<Value>&&constants);
@@ -57,8 +57,8 @@ class VM{
   // register
   uint8_t* ip;
   Value    reg_val;
-  size_t   bp;
-  size_t   sp;
+  size_t   bp = 0;
+  size_t   sp = 0;
 
   // syscall
   vector<thunk> syscalls;
@@ -71,6 +71,7 @@ class VM{
 };
 
 bool sys_print(VM& vm);
+bool sys_inspect(VM& vm);
 
 } }
 

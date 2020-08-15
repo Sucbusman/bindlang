@@ -29,15 +29,13 @@ void VM::init(vector<std::uint8_t> &&codes,
               vector<Value> &&constants){
   this->rom = codes;
   this->constants=constants;
-  ip = (this->rom).data();
   values.clear();
-  bp = 0;
-  sp = 0;
   reset();
 }
 
 void VM::standardSyscalls(){
   syscalls.push_back(sys_print);
+  syscalls.push_back(sys_inspect);
 }
 
 void VM::push(Value val){
@@ -87,10 +85,10 @@ bool VM::run(){
 #define wordp  ((uint32_t*)ip)
 #define dwordp ((uint64_t*)ip)
 #define WHEN(OP) case (uint8_t)OpCode::OP
-#define BINARY_OP(type,op)                      \
+#define BINARY_OP(type,op,rst_type)            \
   do{auto r = pop();auto l = pop();            \
-  word = (l.as.type op r.as.type);              \
-  reg_val = Value(word);}while(0)
+    rst_type ans = (l.as.type op r.as.type);   \
+  reg_val = Value(ans);}while(0)
   uint32_t word;
   uint64_t dword;
   while(true){
@@ -130,12 +128,12 @@ bool VM::run(){
         dword = EAT(uint64_t);
         reg_val = Value(dword);
         break;
-      WHEN(ADD):    BINARY_OP(number, +);break;
-      WHEN(MINUS):  BINARY_OP(number, -);break;
-      WHEN(MULT):   BINARY_OP(number, *);break;
-      WHEN(DIVIDE): BINARY_OP(number, /);break;
-      WHEN(GT):     BINARY_OP(number, >);break;
-      WHEN(LT):     BINARY_OP(number, <);break;
+        WHEN(ADD):    BINARY_OP(number,+,uint64_t);break;
+        WHEN(MINUS):  BINARY_OP(number,-,uint64_t);break;
+        WHEN(MULT):   BINARY_OP(number,*,uint64_t);break;
+        WHEN(DIVIDE): BINARY_OP(number,/,uint64_t);break;
+        WHEN(GT):     BINARY_OP(number,>,bool);break;
+        WHEN(LT):     BINARY_OP(number,<,bool);break;
       WHEN(EQ):{
         auto r = pop();
         auto l = pop();
@@ -267,6 +265,11 @@ void VM::disassemble(){
 
 bool sys_print(VM& vm){
   printVal(vm.reg_val);
+  return true;
+}
+
+bool sys_inspect(VM& vm){
+  inspectVal(vm.reg_val);
   return true;
 }
 

@@ -1,10 +1,10 @@
 #include "assembler.h"
 #include "value.h"
 namespace bindlang::vm{
-#define INSTALL_NO_ARG(f)\
-  f(PUSH) f(POP)  f(RET) \
+#define INSTALL_NO_ARG(f)           \
+  f(PUSH) f(POP)  f(RET)            \
   f(ADD) f(MINUS) f(MULT) f(DIVIDE) \
-  f(EQ)                             \
+  f(EQ)  f(LT) f(GT)                \
   f(HALT) f(CALL)
 
 #define INSTALL_ONE_ARG(f)\
@@ -116,7 +116,7 @@ void Assembler::parseConstant(){
         break;
       }
       case '"':
-        coder.addConst(Value(tok.c_str()+1));
+        coder.addConst(Value(make_obj(tok.c_str()+1)));
         break;
       case '$':
         coder.addConst(Value((uint32_t)atoi(tok.c_str()+1)));
@@ -251,6 +251,17 @@ string Assembler::tokString(){
     return ch=='"';
   });
   auto tok = makeTok();
+  //handle escape character
+  //string ans;
+  //for(auto i=0;i<ans.size();){
+  //  if(ans[i] == '\\'){
+  //    i++;
+  //    if(ans[i] == 'n'){
+  //      ans += '\n';
+  //    }
+  //  }
+  //  i++;
+  //}
   eat();//eat closing '"'
   return tok;
 }
@@ -280,13 +291,16 @@ inline string Assembler::tokEof(){
   return "\0EOF";
 }
 
-bool Assembler::run(){
+void Assembler::scan(){
+  while(not hasError() or not atEnd()){
+    cout<<token()<<endl;
+  }
+}
+
+void Assembler::write(const char* path){
   parse();
-  const char* path = "test.bdc";
   coder.writeBinary(path);
-  //cout<<"haserror?"<<(int)hasError()<<endl;
-  //if(hasError()) return false;//TODO:why has Error here
-  return true;
+  return;
 }
 
 #undef INSTALL_NO_ARG

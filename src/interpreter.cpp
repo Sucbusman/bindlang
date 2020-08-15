@@ -29,19 +29,23 @@ void Interpreter::reset(){
 }
 
 string basename(string const& path){
-  string base="";
-  for(auto i = path.size()-1;i>=0;i--){
+  string rbase="";
+  for(auto i = path.size()-1;i!=~0;i--){
     if(path[i] == '/'){
-      return base;
+      break;
     }
-    base+=path[i];
+    rbase+=path[i];
+  }
+  string base;
+  for(auto i=rbase.size()-1;i!=~0;i--){
+    base.push_back(rbase[i]);
   }
   return base;
 }
 
 string dirname(string const& path){
   string dir = "";
-  for(auto i = path.size()-1;i>=0;i--){
+  for(auto i = path.size()-1;i!=~0;i--){
     if(path[i] == '/'){
       for(long unsigned int j=0;j<=i;j++){
         dir += path[j];

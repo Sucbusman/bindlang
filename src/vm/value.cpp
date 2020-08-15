@@ -35,7 +35,7 @@ void printVal(Value const& val){
   switch(val.type){
     case VAL_NIL:    cout<<"Nil";
     case VAL_BOOL:   cout<<val.as.boolean;break;
-    case VAL_NUMBER: cout<<val.as.number;break;
+    case VAL_NUMBER: cout<<dec<<val.as.number;break;
     case VAL_String: cout<<*AS_CSTRING(val);break;
     case VAL_Procedure:{
       auto offset = AS_PROCEDURE(val)->offset;
@@ -43,6 +43,7 @@ void printVal(Value const& val){
       break;
     }
     default:
+      cerr<<"Unreachable!"<<endl;
       break;
   }
 }
