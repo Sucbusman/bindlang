@@ -3,7 +3,7 @@ src/vm/*.o
 src/vm/vm
 src/vm/vm/test/
 src/vm/bdvm
-src/vm/*.blc
+src/vm/*.bdc
 src/vm/bin
 bindlang
 *.log
