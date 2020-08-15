@@ -31,6 +31,7 @@ bool valueEqual(const Value & v1, const Value & v2){
 }
 
 void printVal(Value const& val){
+  // we should not print newline at here
   switch(val.type){
     case VAL_NIL:    cout<<"Nil";
     case VAL_BOOL:   cout<<val.as.boolean;break;
@@ -44,7 +45,6 @@ void printVal(Value const& val){
     default:
       break;
   }
-  cout<<endl;
 }
 
 void inspectVal(Value const& val){

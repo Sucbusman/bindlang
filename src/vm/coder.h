@@ -11,6 +11,7 @@ class Coder{
   vector<uint8_t> codes;
   vector<Value>   constants;
 
+  void insert(size_t pc,uint32_t val);
   void push9(OpCode,uint64_t);
   void push5(OpCode,uint32_t);
   inline void push1(OpCode);
@@ -22,9 +23,14 @@ class Coder{
   bool writeBinary(const char* fname);
 
   size_t tellp();
+  size_t tellcp();
+  void addConst(Value);
+
   // bytecodes
   void CNST(Value);
   void CNSH(Value);
+  void CNST(uint32_t);
+  void CNSH(uint64_t);
   void IMM(uint64_t);
   void PUSH();
   void POP();

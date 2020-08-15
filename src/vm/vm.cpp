@@ -29,6 +29,7 @@ void VM::init(vector<std::uint8_t> &&codes,
               vector<Value> &&constants){
   this->rom = codes;
   this->constants=constants;
+  ip = (this->rom).data();
   values.clear();
   bp = 0;
   sp = 0;
@@ -62,6 +63,7 @@ void printIndent(int n){
 void VM::dumpRegs(){
   cout<<"  sp:0x"<<hex<<sp<<" bp:0x"<<hex<<bp<<" val_reg:";
   printVal(reg_val);
+  cout<<endl;
 }
 
 void VM::dumpStack(){
@@ -92,7 +94,7 @@ bool VM::run(){
   uint32_t word;
   uint64_t dword;
   while(true){
-    //disas_inst(ip);
+    //disas_inst(ip);//debug
     uint8_t opc = EAT(uint8_t);
     switch(opc){
       WHEN(SETL):{
@@ -115,10 +117,11 @@ bool VM::run(){
         }
         break;
       WHEN(FUN):
-      WHEN(CNST):
-        reg_val = constants[*wordp];
-        ip+=4;
+      WHEN(CNST):{
+        word = EAT(uint32_t);
+        reg_val = constants[word];
         break;
+      }
       WHEN(CNSH):
         reg_val = constants[*dwordp];
         ip+=8;
@@ -179,7 +182,7 @@ bool VM::run(){
         return false;
       }
     }
-    //dumpRegs();
+    //dumpRegs();//debug
     //dumpStack();
   }
   return false;
@@ -255,8 +258,9 @@ uint8_t* VM::disas_inst(uint8_t* pc){
 }
 
 void VM::disassemble(){
-  while(ip-rom.data()<rom.size()){
-    ip=disas_inst(ip);
+  auto pc = ip;
+  while(pc-rom.data()<rom.size()){
+    pc=disas_inst(pc);
   }
 #undef WHEN
 }

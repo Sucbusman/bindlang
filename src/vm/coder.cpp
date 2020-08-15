@@ -49,8 +49,9 @@ void Coder::parseBytecode(vector<uint8_t>& buffer){
         break;
       }
       case VAL_Procedure:{
+        uint32_t arity = READ(uint32_t);
         size_t offset = READ(size_t);
-        PUSHV(Value(make_obj("anony",0,offset)));
+        PUSHV(Value(make_obj("anony",arity,offset)));
         break;
       }
       default:
@@ -97,8 +98,10 @@ vector<uint8_t> Coder::genBytecode(){
         break;
       }
       case VAL_Procedure:{
-        content.write((char*)&AS_PROCEDURE(val)->offset,sizeof(size_t));
-        len+=sizeof(size_t);
+        auto proc = AS_PROCEDURE(val);
+        content.write((char*)&proc->arity,4);
+        content.write((char*)&proc->offset,sizeof(size_t));
+        len+=4+sizeof(size_t);
         break;
       }
       default:
@@ -168,6 +171,24 @@ bool Coder::compareVersion(uint32_t check){
   return check == ver_info;
 }
 
+// constants
+size_t Coder::tellcp(){
+  return constants.size();
+}
+
+void Coder::addConst(Value v){
+  constants.push_back(v);
+}
+
+// bytecodes
+void Coder::insert(size_t pc,uint32_t opr){
+  uint8_t *bytes = PtrCast<uint8_t>(&opr);
+  codes[pc+0] = bytes[0];
+  codes[pc+1] = bytes[1];
+  codes[pc+2] = bytes[2];
+  codes[pc+3] = bytes[3];
+}
+
 void Coder::push5(OpCode opc,uint32_t opr){
   codes.push_back((uint8_t)opc);
   uint8_t *bytes = PtrCast<uint8_t>(&opr);
@@ -190,18 +211,19 @@ inline void Coder::push1(OpCode opc){
 }
 
 size_t Coder::tellp(){
-  return codes.size()-1;
+  return codes.size();
 }
 
 void Coder::CNST(Value v){
+  push5(OpCode::CNST,(uint32_t)(constants.size()));
   constants.push_back(v);
-  push5(OpCode::CNST,(uint32_t)(constants.size()-1));
 }
 
 void Coder::CNSH(Value v){
+  push9(OpCode::CNST,constants.size());
   constants.push_back(v);
-  push9(OpCode::CNST,constants.size()-1);
 }
+
 
 #define INST1(F) \
   void Coder::F(){                              \
@@ -234,6 +256,8 @@ INST5(JMP);
 INST5(GETL);
 INST5(FUN);
 INST5(SETL);
+INST5(CNST);
 INST9(IMM);
+INST9(CNSH);
 
 }
