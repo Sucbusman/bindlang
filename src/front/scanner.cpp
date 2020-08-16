@@ -1,5 +1,5 @@
 #include <functional>
-#include "scanner.h"
+#include "front/scanner.h"
 
 namespace bindlang{
 
@@ -52,7 +52,7 @@ void Scanner::reset(){
   line_num  = 1;
   char_     = ' ';
   cache     = std::string();
-  future    = law::fix_queue<char>(10);
+  future    = fix_queue<char>(10);
   in >> std::noskipws;
 }
 

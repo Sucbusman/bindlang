@@ -1,4 +1,4 @@
-#include "vm.h"
+#include "vm/vm.h"
 
 namespace bindlang::vm{
 

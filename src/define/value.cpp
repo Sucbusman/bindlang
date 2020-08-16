@@ -1,5 +1,5 @@
-#include "value.h"
-#include "type.h"
+#include "define/value.h"
+#include "define/type.h"
 #include <cstdint>
 namespace bindlang{
 

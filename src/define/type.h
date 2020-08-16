@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 #include <functional>
-#include "token.h"
+#include "front/token.h"
 
 namespace bindlang{
 

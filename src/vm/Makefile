@@ -3,7 +3,7 @@ Objects=$(subst .cpp,.o,$(Sources))
 CCFLAG=-std=c++2a -Wall -march=native
 CC=clang++
 bdvm:$(Objects)
-	$(CC) $(CCFLAG) $(Objects) -o $@
+	$(CC) $(CCFLAG) $(Objects) ../utils.o -o $@
 %.o:%.cpp
 	$(CC) $(CCFLAG) -c $< -o $@
 

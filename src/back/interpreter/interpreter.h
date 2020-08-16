@@ -1,9 +1,9 @@
 #ifndef __interpreter__
 #define __interpreter__
 #include <unordered_map>
-#include "parser.h"
-#include "value.h"
-#include "type.h"
+#include "front/parser.h"
+#include "define/value.h"
+#include "define/type.h"
 
 namespace bindlang {
 

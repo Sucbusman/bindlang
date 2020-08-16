@@ -1,11 +1,7 @@
 obj/*
-src/vm/*.o
-src/vm/vm
-src/vm/vm/test/
-src/vm/bdvm
-src/vm/*.bdc
-src/vm/bin
+build/*
 bindlang
+bdvm
 *.log
 src/.ccls-cache/
 *#

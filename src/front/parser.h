@@ -1,10 +1,10 @@
 #ifndef __parser__
 #define __parser__
 #include <stack>
-#include "scanner.h"
-#include "ast.h"
-#include "utils.h"
-#include "queue.h"
+#include "front/scanner.h"
+#include "define/ast.h"
+#include "util/utils.h"
+#include "util/queue.h"
 
 namespace bindlang {
 
@@ -12,7 +12,7 @@ class Parser {
  public:
   Parser(Scanner &scanner):
     scanner(scanner),error_num(0),
-    future(law::fix_queue<Token>(5)),
+    future(fix_queue<Token>(5)),
     protect(false){
     scanner.reset();
   }
@@ -47,7 +47,7 @@ class Parser {
   ExprPtr parseDot(ExprPtr object=nullptr);
 
   Token token_;
-  law::fix_queue<Token> future;
+  fix_queue<Token> future;
   bool  protect;
 };
 

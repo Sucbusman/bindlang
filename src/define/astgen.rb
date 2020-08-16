@@ -27,9 +27,9 @@ Prelude= <<EOF
 #include <string>
 #include <iomanip>
 
-#include "token.h"
-#include "utils.h"
-#include "type.h"
+#include "front/token.h"
+#include "util/utils.h"
+#include "define/type.h"
 
 namespace bindlang{
 using std::cout;

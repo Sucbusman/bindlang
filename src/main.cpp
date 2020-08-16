@@ -2,9 +2,9 @@
 #include <sstream>
 #include <fstream>
 #include <cstring>
-#include "scanner.h"
-#include "parser.h"
-#include "interpreter.h"
+#include "front/scanner.h"
+#include "front/parser.h"
+#include "back/interpreter/interpreter.h"
 
 using namespace bindlang;
 

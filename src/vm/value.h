@@ -4,8 +4,8 @@
 #include <unordered_map>
 #include <vector>
 #include <stdint.h>
-#include "type.h"
-#include "../utils.h"
+#include "vm/type.h"
+#include "util/utils.h"
 
 #define VM_INST_OPC_WIDTH 5
 #define VM_INST_OPR_WIDTH (32-VM_INST_OPC_WIDTH)

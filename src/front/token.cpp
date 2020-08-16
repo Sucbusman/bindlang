@@ -1,7 +1,7 @@
 #include <iostream>
 #include <iomanip>
-#include "token.h"
-#include "utils.h"
+#include "front/token.h"
+#include "util/utils.h"
 namespace bindlang{
 
 const char *toktype_str_list[] = {

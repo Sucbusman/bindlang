@@ -14,4 +14,9 @@ using namespace std;
   (dynamic_cast<T>((e).release()))
 #define cast(T,o) (dynamic_cast<T>((o)))
 
+string prefix(string const& path);
+string basename(string const& path);
+string dirname(string const& path);
+
+
 #endif

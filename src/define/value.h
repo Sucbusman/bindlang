@@ -3,8 +3,8 @@
 #include <cstdint>
 #include <unordered_map>
 #include <stack>
-#include "type.h"
-#include "ast.h"
+#include "define/type.h"
+#include "define/ast.h"
 
 namespace bindlang{
 

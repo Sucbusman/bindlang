@@ -1,9 +1,8 @@
 #include <bits/stdint-uintn.h>
 #include <iostream>
-#include "value.h"
-#include "vm.h"
-
-#include "coder.h"
+#include "vm/value.h"
+#include "vm/vm.h"
+#include "vm/coder.h"
 
 namespace bindlang { namespace vm{
 

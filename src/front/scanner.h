@@ -2,9 +2,9 @@
 #define __scanner__
 #include <istream>
 #include <functional>
-#include "queue.h"
-#include "utils.h"
-#include "token.h"
+#include "util/queue.h"
+#include "util/utils.h"
+#include "front/token.h"
 
 namespace bindlang {
 
@@ -13,7 +13,7 @@ class Scanner{
   Scanner(std::istream &in):in(in),
      cache(std::string()),
      /* we borrow at most 10 chars from future */
-     future(law::fix_queue<char>(10)){}
+     future(fix_queue<char>(10)){}
   void  reset();
   Token tokNewline();
   Token tokIdentify();
@@ -38,7 +38,7 @@ class Scanner{
   char char_;
   int line_num;
   std::string cache;
-  law::fix_queue<char> future;
+  fix_queue<char> future;
 };
 
 } // namespace bindlang

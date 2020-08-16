@@ -4,10 +4,8 @@
 #include <fstream>
 #include <streambuf>
 #include <unistd.h>
-#include "interpreter.h"
-#include "ast.h"
-#include "type.h"
-#include "value.h"
+#include "back/interpreter/interpreter.h"
+#include "define/ast.h"
 
 namespace bindlang {
 

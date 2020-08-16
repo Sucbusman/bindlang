@@ -1,7 +1,7 @@
 #ifndef __coder__
 #define __coder__
-#include "value.h"
 #include "version.h"
+#include "vm/value.h"
 #include <cstdint>
 
 namespace bindlang::vm{

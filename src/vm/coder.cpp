@@ -1,11 +1,10 @@
-#include <bits/stdint-uintn.h>
 #include <cstdio>
 #include <fstream>
 #include <iterator>
 #include <memory>
 #include <sstream>
-#include "coder.h"
-#include "value.h"
+#include "vm/coder.h"
+#include "vm/value.h"
 
 namespace bindlang::vm{
 

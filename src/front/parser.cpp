@@ -1,5 +1,5 @@
-#include "parser.h"
 #include <memory>
+#include "front/parser.h"
 
 using namespace bindlang;
 using std::make_unique;
@@ -8,7 +8,7 @@ using std::move;
 void Parser::reset(){
   scanner.reset();
   token_ = Token(0,' ',std::string());
-  future = law::fix_queue<Token>(5);
+  future = fix_queue<Token>(5);
   error_num = 0;
 }
 

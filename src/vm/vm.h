@@ -5,7 +5,7 @@
 #include <stack>
 #include <vector>
 #include <string>
-#include "value.h"
+#include "vm/value.h"
 
 namespace bindlang { namespace vm{
 typedef enum{

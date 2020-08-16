@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 #include <functional>
-#include "coder.h"
+#include "vm/coder.h"
 namespace bindlang::vm {
 
 /* token is a special string 
