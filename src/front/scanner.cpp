@@ -100,9 +100,11 @@ char Scanner::peekNext(){
   }
 }
 
-bool Scanner::error(const char *message){
-  std::cerr<<"[Scanner Error] At line "<<line_num
-           <<message<<" with cache "<<cache
+template <typename ...Arg>
+bool Scanner::error(Arg... arg){
+  std::cerr<<"[Scanner Error] At line "<<line_num;
+  (std::cerr<< ... <<arg) << endl;
+  std::cerr<<" with cache "<<cache
            <<" ascii:"<<(int)char_<<std::endl;
   return false;
 }
@@ -231,6 +233,38 @@ Token Scanner::tokNumber(){
   return makeToken(tok_num);
 }
 
+Token Scanner::handleEscape(Token& tok){
+  auto s = tok.literal;
+  auto type = tok.type;
+  string ans;
+  for(int i=0;i<s.size();){
+    if(s[i] == '\\'){
+      if(i+1<s.size()){
+        switch(s[i+1]){
+          case 'n':ans.push_back('\n');break;
+          case 't':ans.push_back('\t');break;
+          case 'f':ans.push_back('\f');break;
+          case '\\':ans.push_back('\\');break;
+          default:
+            error("malform escape string with ",
+                  s[i+1],"after \\");
+            type = tok_err;
+            break;
+        }
+        i+=2;
+      }else{
+        error("malform escape string");
+        type = tok_err;
+        ++i;
+      }
+    }else{
+      ans.push_back(s[i]);
+      ++i;
+    }
+  }
+  return Token(tok.line,type,ans);
+}
+
 Token Scanner::tokString(){
   cache.clear();//eat '"'
   skipUntil([this](char ch)mutable{
@@ -239,7 +273,8 @@ Token Scanner::tokString(){
             })
     or error("expect closing right quote");
   cache.pop_back();//pop closing '"'
-  return makeToken(tok_str);
+  auto tok = makeToken(tok_str);
+  return handleEscape(tok);
 }
 
 bool Scanner::isIdStart(char ch){

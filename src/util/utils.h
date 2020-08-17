@@ -1,6 +1,9 @@
 #ifndef __utils__
 #define __utils__
 #include <ostream>
+#include <vector>
+#include <functional>
+
 using namespace std;
 #define DEFAULT "\033[0m"
 #define GREEN(s) ("\033[0;36m" s DEFAULT)
@@ -18,5 +21,13 @@ string prefix(string const& path);
 string basename(string const& path);
 string dirname(string const& path);
 
+template <typename A,typename B>
+vector<B> mapvec(vector<A> as,std::function<B(A&)> f){
+  vector<B> bs;
+  for(auto &a:as){
+    bs.push_back(f(a));
+  }
+  return bs;
+}
 
 #endif

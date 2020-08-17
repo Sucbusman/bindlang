@@ -29,11 +29,23 @@ int Compiler::Local::get(string const& name){
 
 bool Compiler::Local::has(string const& name){
   auto it = map.find(name);
-  if(it!=map.end()){
-    return true;
-  }else{
-    return false;
-  }
+  return it!=map.end();
+}
+
+int Compiler::Closure::set(string const& name,
+                           int distance,int idx){
+  map[name] = values.size();
+  values.push_back(CapturedVal{distance,idx});
+}
+
+bool Compiler::Closure::has(string const&name){
+  auto it=map.find(name);
+  return it!=map.end();
+}
+
+void Compiler::Closure::clear(){
+  map.clear();
+  values.clear();
 }
 
 void Compiler::runFile(string const& fn){
@@ -44,15 +56,19 @@ void Compiler::runFile(string const& fn){
   auto ifs = ifstream(fn);
   auto scn = Scanner(ifs);
   auto parser = Parser(scn);
-  while(parser.fine()){
+  while(parser.fine() and not hasError()){
     auto expr = parser.parseNext();
     if(not expr or expr->type<0)
       break;
-    expr->show();
+    //expr->show();
     compile(move(expr));
   }
-  coder.HALT();
-  writeBinary(dirname(fn)+prefix(basename(fn))+".bdc");
+  if(not hasError()){
+    coder.HALT();
+    writeBinary(dirname(fn)+prefix(basename(fn))+".bdc");
+  }else{
+    cerr<<"compile failed"<<endl;
+  }
 }
 
 void Compiler::writeBinary(string const& fn){
@@ -89,34 +105,103 @@ void Compiler::compileAtom(ExprPtr expr){
   }
 }
 
+void Compiler::resolveId(ExprPtr expr){
+  auto name = rcast(ExprId*,expr)->id.literal;
+  if(curScope().has(name)) return;
+  else if(locals.size()>1){
+    // check closure
+    if(closure.has(name)) return;
+    // check outer scope
+    auto it = locals.rbegin();++it;
+    for(int distance=0;it!=locals.rend();++it,++distance){
+      if(it->has(name)){
+        // capture it to closure
+        auto idx = it->get(name);
+        closure.set(name,distance,idx);
+        return;
+      }
+    }
+  }
+  // or compile error
+  cout<<"in resolve name is:"<<name<<endl;
+  error("using undefined variable ",name);
+}
+
 void Compiler::compileId(ExprPtr expr){
   auto name = rcast(ExprId*,expr)->id.literal;
-  if(locals.back().has(name)){
+  if(curScope().has(name)){
+    // if in the scope
     auto idx = locals.back().get(name);
     coder.GETL(idx);
+    return;
   }else{
-    cout<<"use name is:"<<name<<endl;
-    error("using undefined variable ",name," at this scope.");
+    // or if in the closure
+    if( closure.has(name)){
+      
+    }
   }
+  // or compile error
+  cout<<"use name is:"<<name<<endl;
+  error("using undefined variable ",name);
+}
+
+void Compiler::resolveDefine(ExprPtr expr){
+  auto def = rcast(ExprDefine*,expr);
+  auto name = def->id.literal;
+  resolve(move(def->expr));
+  curScope().set(name);
 }
 
 void Compiler::compileDefine(ExprPtr expr){
   auto def = rcast(ExprDefine*,expr);
   auto name = def->id.literal;
-  cout<<"define name :"<<name<<endl;
   compile(move(def->expr));
   coder.PUSH();
-  locals.back().set(name);
+  curScope().set(name);
+}
+
+inline Compiler::Local& Compiler::curScope(){
+  return locals.back();
+}
+
+void Compiler::beginScope(vector<string> const& args){
+  auto scope = Local();
+  for(auto &arg:args){
+    scope.set(arg);
+  }
+  locals.push_back(scope);
+}
+
+void Compiler::beginScope(){
+  locals.push_back(Local());
+}
+
+void Compiler::endScope(){
+  locals.pop_back();
+}
+
+void Compiler::resolve(ExprPtr expr){
+  switch(expr->type){
+    case DEFINE:   return resolveDefine(move(expr));
+    case ID:       return resolveId(move(expr));
+    default: return;
+  }
 }
 
 void Compiler::compileFunc(ExprPtr expr){
   auto func = rcast(ExprFunc*,expr);
   auto params = func->params;
+  beginScope(mapvec<Token,string>(params,
+                    [](Token& tok)->string{
+                      return tok.literal;}));
+  resolve(func->body->clone());
   emitFunc("anony",(uint32_t)params.size(),
            [this,func](){
              compile(move(func->body));
              coder.RET();
            });
+  closure.clear();
+  endScope();
 }
 
 void Compiler::compileCall(ExprPtr expr){
@@ -140,7 +225,7 @@ uint32_t Compiler::emitFunc(string const& name,
   coder.JMP(0);//place holder,jump out of function code
   auto pos_func = coder.tellp();
   f();
-  coder.insert(pos_jmp+1,coder.tellp()-pos_jmp);//patch
+  coder.modify(pos_jmp+1,coder.tellp()-pos_jmp);//patch
   coder.CNST(vm::Value(vm::make_obj(name,arity,pos_func)));
   return coder.tellp();
 }

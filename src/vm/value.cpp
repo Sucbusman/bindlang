@@ -39,7 +39,7 @@ void printVal(Value const& val){
     case VAL_String: cout<<*AS_CSTRING(val);break;
     case VAL_Procedure:{
       auto offset = AS_PROCEDURE(val)->offset;
-      cout<<"Func "<<std::dec<<offset;
+      cout<<"<procedure> 0x"<<std::hex<<offset;
       break;
     }
     default:
@@ -58,7 +58,7 @@ void inspectVal(Value const& val){
     case VAL_String: cout<<*AS_CSTRING(val);break;
     case VAL_Procedure:{
       auto offset = AS_PROCEDURE(val)->offset;
-      cout<<"func offset:"<<std::dec<<offset;
+      cout<<"offset:0x"<<std::hex<<offset;
       break;
     }
     default:

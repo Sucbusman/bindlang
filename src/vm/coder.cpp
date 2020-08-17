@@ -182,7 +182,7 @@ size_t Coder::addConst(Value v){
 }
 
 // bytecodes
-void Coder::insert(size_t pc,uint32_t opr){
+void Coder::modify(size_t pc,uint32_t opr){
   uint8_t *bytes = PtrCast<uint8_t>(&opr);
   codes[pc+0] = bytes[0];
   codes[pc+1] = bytes[1];

@@ -11,7 +11,7 @@ class Coder{
   vector<uint8_t> codes;
   vector<Value>   constants;
 
-  void insert(size_t pc,uint32_t val);
+  void modify(size_t pc,uint32_t val);
   void push9(OpCode,uint64_t);
   void push5(OpCode,uint32_t);
   inline void push1(OpCode);

@@ -72,8 +72,8 @@ private:
   std::istream &in;
   char nchar;
   char lchar;
-  int  line_num;
-  int  error_num;
+  int  line_num=0;
+  int  error_num=0;
   std::string cache;
 };
 

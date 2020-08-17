@@ -1,20 +1,19 @@
 Name=bindlang
 Prefix=/usr
 EmacsDir=~/.emacs.d/mypackages/bindlang
-#Sources=$(shell find src/ -name '*.cpp' -not -path "src/vm/*")
 Sources=$(shell find src/ -name '*.cpp')
-Objects=$(subst src/,obj/,$(subst .cpp,.o ,$(Sources)))
+Objects=$(subst src/,build/,$(subst .cpp,.o ,$(Sources)))
 CCFLAG=-std=c++2a -Wall -O2 -march=native -I src/
 CC=clang++
 $(Name): $(Objects)
 	$(CC) $(Objects) -o $@
-obj/%.o: src/%.cpp
+build/%.o: src/%.cpp
 	mkdir -p $$(dirname $@)
 	$(CC) $(CCFLAG) -c $< -o $@
 
 .PHONY:clean option ast install
 clean:
-	find obj/ -name *.o -delete
+	find build/ -name *.o -delete
 option:
 	@echo $(Sources)
 	@echo $(Objects)

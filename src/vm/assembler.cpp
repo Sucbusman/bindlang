@@ -149,7 +149,7 @@ void Assembler::parseCode(){
           else if(lable_unfill){
             auto callsites = it2->second;
             for(auto callsite:callsites){
-              coder.insert(callsite+1,pc-callsite);//patch
+              coder.modify(callsite+1,pc-callsite);//patch
             }
           }else{
             lables[tok] = pc;
@@ -251,17 +251,6 @@ string Assembler::tokString(){
     return ch=='"';
   });
   auto tok = makeTok();
-  //handle escape character
-  //string ans;
-  //for(auto i=0;i<ans.size();){
-  //  if(ans[i] == '\\'){
-  //    i++;
-  //    if(ans[i] == 'n'){
-  //      ans += '\n';
-  //    }
-  //  }
-  //  i++;
-  //}
   eat();//eat closing '"'
   return tok;
 }

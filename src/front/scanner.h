@@ -18,13 +18,15 @@ class Scanner{
   Token tokNewline();
   Token tokIdentify();
   Token tokNumber();
+  Token handleEscape(Token &);
   Token tokString();
   Token nextToken();
   void  debug();
  private:
   bool atEnd();
   bool isIdStart(char);
-  bool error(const char *message);
+  template <typename ...Arg>
+  bool error(Arg...);
   void nextChar();
   char borrow();
   char peekNext();

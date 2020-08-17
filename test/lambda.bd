@@ -1,0 +1,3 @@
+myprint = \s
+->s
+print(myprint("lambda\n"))
