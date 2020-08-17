@@ -1,5 +1,5 @@
-#ifndef __VERSION_
-#define __VERSION__
+#ifndef __VERSION_H__
+#define __VERSION_H__
 
 #ifndef APP_NAME
 #define APP_NAME            "bindlang"

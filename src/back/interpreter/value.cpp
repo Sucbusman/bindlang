@@ -1,6 +1,5 @@
-#include "define/value.h"
-#include "define/type.h"
 #include <cstdint>
+#include "back/interpreter/value.h"
 namespace bindlang{
 
 Obj* objchain = nullptr;

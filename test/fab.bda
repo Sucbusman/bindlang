@@ -8,15 +8,21 @@ IMM 1
 PUSH
 PUSH
 PUSH       #stack:n2 n2 n1
+
+PUSH
 CNST 2
 CALL
+
 CNST 2
 CALL
 @l
 ADD
 PUSH       #stack:n2 n3
+
+PUSH
 CNST 2
 CALL
+
 GETL 0
 PUSH       #n2 n3 n2
 GETL 1

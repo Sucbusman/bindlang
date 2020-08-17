@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 #include "vm/value.h"
+#include "vm/type.h"
 
 namespace bindlang { namespace vm{
 typedef enum{
@@ -45,7 +46,7 @@ class VM{
   // vm
   vector<std::uint8_t> rom;
   vector<Value>        constants;
-
+  
   // value stack
   vector<Value>        values;
   void  push(Value val);
@@ -59,8 +60,10 @@ class VM{
   Value    reg_val;
   size_t   bp = 0;
   size_t   sp = 0;
+  bool     debug = false;
 
   // syscall
+  using  thunk = bool(*)(VM&);
   vector<thunk> syscalls;
   void standardSyscalls();
   

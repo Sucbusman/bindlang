@@ -149,7 +149,7 @@ void Assembler::parseCode(){
           else if(lable_unfill){
             auto callsites = it2->second;
             for(auto callsite:callsites){
-              coder.insert(callsite+1,pc-callsite);//fill
+              coder.insert(callsite+1,pc-callsite);//patch
             }
           }else{
             lables[tok] = pc;

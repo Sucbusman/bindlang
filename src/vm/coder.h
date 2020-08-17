@@ -24,11 +24,11 @@ class Coder{
 
   size_t tellp();
   size_t tellcp();
-  void addConst(Value);
+  size_t addConst(Value);
 
   // bytecodes
-  void CNST(Value);
-  void CNSH(Value);
+  size_t CNST(Value);
+  size_t CNSH(Value);
   void CNST(uint32_t);
   void CNSH(uint64_t);
   void IMM(uint64_t);

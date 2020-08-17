@@ -56,12 +56,17 @@
   },
   {
     "directory": "/home/lawliet/src/bindlang/build",
-    "command": "clang++ -std=c++17  -I/home/lawliet/src/bindlang/src -o src/define/value.cpp.o -c /home/lawliet/src/bindlang/srcsrc/define/value.cpp",
-    "file": "/home/lawliet/src/bindlang/srcsrc/define/value.cpp"
+    "command": "clang++ -std=c++17  -I/home/lawliet/src/bindlang/src -o src/back/compiler/compiler.cpp.o -c /home/lawliet/src/bindlang/srcsrc/back/compiler/compiler.cpp",
+    "file": "/home/lawliet/src/bindlang/srcsrc/back/compiler/compiler.cpp"
   },
   {
     "directory": "/home/lawliet/src/bindlang/build",
     "command": "clang++ -std=c++17  -I/home/lawliet/src/bindlang/src -o src/back/interpreter/interpreter.cpp.o -c /home/lawliet/src/bindlang/srcsrc/back/interpreter/interpreter.cpp",
     "file": "/home/lawliet/src/bindlang/srcsrc/back/interpreter/interpreter.cpp"
+  },
+  {
+    "directory": "/home/lawliet/src/bindlang/build",
+    "command": "clang++ -std=c++17  -I/home/lawliet/src/bindlang/src -o src/back/interpreter/value.cpp.o -c /home/lawliet/src/bindlang/srcsrc/back/interpreter/value.cpp",
+    "file": "/home/lawliet/src/bindlang/srcsrc/back/interpreter/value.cpp"
   }
 ]

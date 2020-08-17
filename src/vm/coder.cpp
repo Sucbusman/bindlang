@@ -175,8 +175,10 @@ size_t Coder::tellcp(){
   return constants.size();
 }
 
-void Coder::addConst(Value v){
+size_t Coder::addConst(Value v){
+  auto idx = constants.size();
   constants.push_back(v);
+  return idx;
 }
 
 // bytecodes
@@ -213,14 +215,18 @@ size_t Coder::tellp(){
   return codes.size();
 }
 
-void Coder::CNST(Value v){
-  push5(OpCode::CNST,(uint32_t)(constants.size()));
+size_t Coder::CNST(Value v){
+  auto idx = (uint32_t)(constants.size());
+  push5(OpCode::CNST,idx);
   constants.push_back(v);
+  return idx;
 }
 
-void Coder::CNSH(Value v){
-  push9(OpCode::CNST,constants.size());
+size_t Coder::CNSH(Value v){
+  auto idx = constants.size();
+  push9(OpCode::CNST,idx);
   constants.push_back(v);
+  return idx;
 }
 
 

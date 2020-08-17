@@ -91,7 +91,9 @@ bool VM::run(){
   uint32_t word;
   uint64_t dword;
   while(true){
-    //disas_inst(ip);//debug
+    if(debug){
+      disas_inst(ip);//debug
+    }
     uint8_t opc = EAT(uint8_t);
     switch(opc){
       WHEN(SETL):{
@@ -148,7 +150,7 @@ bool VM::run(){
       WHEN(TCALL):
       WHEN(CALL):{
          auto func = AS_PROCEDURE(reg_val);
-         frames.push_back( callFrame(ip,bp,sp));
+         frames.push_back( callFrame(ip,bp,sp-func->arity));
          bp = sp-func->arity;
          ip = rom.data()+func->offset;//jump
          break;
@@ -179,8 +181,10 @@ bool VM::run(){
         return false;
       }
     }
-    //dumpRegs();//debug
-    //dumpStack();
+    if(debug){
+      dumpRegs();//debug
+      dumpStack();
+    }
   }
   return false;
 #undef EAT

@@ -1,10 +1,14 @@
 #include <iostream>
+#include <ostream>
 #include <sstream>
 #include <fstream>
 #include <cstring>
 #include "front/scanner.h"
 #include "front/parser.h"
 #include "back/interpreter/interpreter.h"
+#include "back/compiler/compiler.h"
+#include "vm/vm.h"
+#include "vm/assembler.h"
 
 using namespace bindlang;
 
@@ -103,15 +107,86 @@ void repl(){
   std::cout<<"bye~"<<std::endl;
 }
 
-void runFile(string const& fn){
+void interpFile(string const& fn){
   auto interp = Interpreter();
   interp.runFile(fn);
 }
 
+void compileFile(string const& fn){
+  auto compiler = Compiler();
+  compiler.runFile(fn);
+}
+
+void scan(const char* path){
+  std::ifstream ifs(path);
+  if(ifs.fail()){
+    std::cerr<<"open file "<<path<<" failed!"<<std::endl;
+  }
+  auto as = vm::Assembler(ifs);
+  as.scan();
+}
+
+void as(const char* path){
+  std::ifstream ifs(path);
+  if(ifs.fail()){
+    std::cerr<<"open file "<<path<<" failed!"<<std::endl;
+  }
+  auto as = vm::Assembler(ifs);
+  string out = dirname(path)+prefix(basename(string(path)))+".bdc";
+  as.write(out.c_str());
+}
+
+void disas(const char* path){
+  auto coder = vm::Coder();
+  coder.readBinary(path);
+  auto vm = vm::VM(move(coder.codes),move(coder.constants));
+  vm.disassemble();
+}
+
+void runBytecode(const char* path,bool debugp){
+  auto coder = vm::Coder();
+  coder.readBinary(path);
+  auto vm = vm::VM(move(coder.codes),move(coder.constants));
+  vm.debug = debugp;
+  vm.run();
+}
+
 int main(int argc,char *argv[]){
-  if(argc>=2)
-    runFile(string(argv[1]));
-  else 
+  auto showhelp = [argv](){
+    cout<<"Usage:"<<argv[0]<<
+      " [<interp|compile|scan|as|disas|run|debug> <file>]"<<endl
+        <<"default:zero arg:repl"
+        <<"one arg:compile"<<endl;
+  };
+  if(argc<2){
     repl();
+  }else if(argc<3){
+    compileFile(string(argv[1]));
+  }else if(argc<4){
+    auto action = string(argv[1]);
+#define when(S) if(action == (S))
+    when("run"){
+      runBytecode(argv[2],false);
+    }else when("as"){
+      as(argv[2]);
+    }else when("disas"){
+      disas(argv[2]);
+    }else when("scan"){
+      scan(argv[2]);
+    }else when("compile"){
+      compileFile(string(argv[2]));
+    }else when("interp"){
+      interpFile(argv[2]);
+    }else when("debug"){
+      runBytecode(argv[2], true);
+    }else{
+      showhelp();
+      exit(1);
+    }
+  }else{
+    showhelp();
+    exit(1);
+  }
+#undef when
   return 0;
 }
