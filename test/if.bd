@@ -1,0 +1,5 @@
+a = 8
+b = 3
+if(gt(b a)
+   print("great")
+   print("less"))

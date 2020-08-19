@@ -55,7 +55,7 @@ void Compiler::Closure::clear(){
   values.clear();
 }
 
-void Compiler::runFile(string const& fn){
+void Compiler::compileFile2mem(string const& fn){
   if(access(fn.c_str(), F_OK)!=0){
     cerr<<"Can not open file:"<<fn<<endl;
     return;
@@ -71,9 +71,15 @@ void Compiler::runFile(string const& fn){
   }
   if(not hasError()){
     coder.HALT();
-    writeBinary(dirname(fn)+prefix(basename(fn))+".bdc");
   }else{
     cerr<<"compile failed"<<endl;
+  }
+}
+
+void Compiler::compileFile(string const& fn){
+  compileFile2mem(fn);
+  if(not hasError()){
+    writeBinary(dirname(fn)+prefix(basename(fn))+".bdc");
   }
 }
 
@@ -113,7 +119,6 @@ void Compiler::compileAtom(ExprPtr expr){
 
 void Compiler::resolveId(ExprPtr expr){
   auto name = rcast(ExprId*,expr)->id.literal;
-  cout<<"when resolve "<<name<<endl;//debug
   if(curScope().has(name)) return;
   else if(locals.size()>1){
     // check closure
@@ -124,9 +129,7 @@ void Compiler::resolveId(ExprPtr expr){
       if(it->has(name)){
         // capture it to closure
         auto lidx = it->get(name);
-        cout<<"capture "<<name<<" at "<<distance<<':'<<lidx<<endl;
         auto j = closures.size()-distance;
-        cout<<"j:"<<j<<endl;
         uint32_t vidx;
         if(closures[j].has(name)){
           vidx = closures[j].get(name);
@@ -145,7 +148,6 @@ void Compiler::resolveId(ExprPtr expr){
     }
   }else{
     // or compile error
-    cout<<"in resolve name is:"<<name<<endl;
     error("using undefined variable ",name);
   }
 }
@@ -163,7 +165,6 @@ void Compiler::compileId(ExprPtr expr){
     coder.GETC(idx);
   }else{
     // or compile error
-    cout<<"use name is:"<<name<<endl;
     error("using undefined variable ",name);
   }
 }
@@ -178,6 +179,10 @@ void Compiler::resolveDefine(ExprPtr expr){
 void Compiler::compileDefine(ExprPtr expr){
   auto def = rcast(ExprDefine*,expr);
   auto name = def->id.literal;
+  auto it = keywords.find(name);
+  if(it!=keywords.end()){
+    error("can not define ",name," this name is keyword");
+  }
   compile(move(def->expr));
   coder.PUSH();
   curScope().set(name);
@@ -241,12 +246,21 @@ void Compiler::resolveCall(ExprPtr expr){
 void Compiler::compileCall(ExprPtr expr){
   auto call = rcast(ExprCall*,expr);
   auto args = move(call->args);
+  if (call->callee->type == ID){
+    // check if keyword
+    auto name = rcast(ExprId*,call->callee->clone())->id.literal;
+    auto it = keywords.find(name);
+    if(it != keywords.end()){
+      return it->second(move(args));
+    }
+  }
+
   for(auto & arg:args){
     compile(move(arg));
     coder.PUSH();
   }
   compile(move(call->callee));
-  coder.CALL();
+  coder.CALL();   
 }
 
 uint32_t Compiler::emitFunc(string const& name,
@@ -280,18 +294,34 @@ void Compiler::standardEnvironment(){
     coder.GETL(0);
     coder.SYSCALL(0);
   });
-  pushFunc(toplevel,"+",2,[this](){
-    coder.ADD();
-  });
-  pushFunc(toplevel,"-",2,[this](){
-    coder.MINUS();
-  });
-  pushFunc(toplevel,"*",2,[this](){
-    coder.MULT();
-  });
-  pushFunc(toplevel,"/",2,[this](){
-    coder.DIVIDE();
-  });
+  pushFunc(toplevel,"+",2,[this](){coder.ADD();});
+  pushFunc(toplevel,"-",2,[this](){coder.MINUS();});
+  pushFunc(toplevel,"*",2,[this](){coder.MULT();});
+  pushFunc(toplevel,"/",2,[this](){coder.DIVIDE();});
+  pushFunc(toplevel,"gt",2,[this](){coder.GT();});
+  pushFunc(toplevel,"lt",2,[this](){coder.LT();});
+  pushFunc(toplevel,"eq",2,[this](){coder.EQ();});
+  keywords["if"] = [this](ExprPtrList args){
+    if(args.size()!=2 and args.size()!=3)
+      error("Wrong argument number ",args.size(),", expect 2 or 3 args.");
+    else{
+      compile(move(args[0]));
+      auto test_end = coder.tellp();
+      coder.JNE(0);//place holder
+      compile(move(args[1]));
+      auto then_end = coder.tellp();
+      coder.JMP(0);//place holder
+      auto else_start = coder.tellp();
+      coder.modify(test_end+1,else_start-test_end);
+      if(args.size()>2){
+        compile(move(args[2]));
+      }else{
+        coder.FALSE();
+      }
+      auto else_end = coder.tellp();
+      coder.modify(then_end+1,else_end-then_end);
+    }
+  };
   locals.push_back(toplevel);
 }
 

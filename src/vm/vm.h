@@ -69,7 +69,8 @@ class VM{
   using  thunk = bool(*)(VM&);
   vector<thunk> syscalls;
   void standardSyscalls();
-  
+  unordered_map<string,std::function<void(void)> > keywords;
+
   // env
   Env toplevel;
   stack<Env> envs;

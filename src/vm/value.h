@@ -7,10 +7,6 @@
 #include "vm/type.h"
 #include "util/utils.h"
 
-#define VM_INST_OPC_WIDTH 5
-#define VM_INST_OPR_WIDTH (32-VM_INST_OPC_WIDTH)
-#define VM_INST_IMM_MASK  ((1<<VM_INST_OPR_WIDTH)-1)
-
 #define VM_INSTALL_ALL_INST(f) \
   f(GETL) f(GETG) f(SETC) f(GETC) f(SETL) f(SETG)     \
   f(CNST) f(CNSH) f(IMM)                              \
@@ -19,6 +15,7 @@
   f(JMP)  f(JNE)                                      \
   f(ADD)  f(MINUS)   f(MULT) f(DIVIDE)                \
   f(EQ)   f(GT)      f(LT)                            \
+  f(TRUE) f(FALSE)                                    \
   f(HALT) f(SYSCALL) 
   
 #define VM_EXPAND_LIST(i) i,

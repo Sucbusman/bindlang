@@ -50,6 +50,8 @@ class Coder{
   void GT();
   void LT();
   void EQ();
+  void TRUE();
+  void FALSE();
   void RET();
   void HALT();
   void CALL();

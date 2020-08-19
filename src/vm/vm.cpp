@@ -165,18 +165,20 @@ bool VM::run(){
         dword = EAT(uint64_t);
         reg_val = Value(dword);
         break;
-        WHEN(ADD):    BINARY_OP(number,+,uint64_t);break;
-        WHEN(MINUS):  BINARY_OP(number,-,uint64_t);break;
-        WHEN(MULT):   BINARY_OP(number,*,uint64_t);break;
-        WHEN(DIVIDE): BINARY_OP(number,/,uint64_t);break;
-        WHEN(GT):     BINARY_OP(number,>,bool);break;
-        WHEN(LT):     BINARY_OP(number,<,bool);break;
+      WHEN(ADD):    BINARY_OP(number,+,uint64_t);break;
+      WHEN(MINUS):  BINARY_OP(number,-,uint64_t);break;
+      WHEN(MULT):   BINARY_OP(number,*,uint64_t);break;
+      WHEN(DIVIDE): BINARY_OP(number,/,uint64_t);break;
+      WHEN(GT):     BINARY_OP(number,>,bool);break;
+      WHEN(LT):     BINARY_OP(number,<,bool);break;
       WHEN(EQ):{
         auto r = pop();
         auto l = pop();
         reg_val = Value(valueEqual(r, l));
         break;
       }
+      WHEN(TRUE):reg_val = Value(true);break;
+      WHEN(FALSE):reg_val = Value(false);break;
       WHEN(PUSH):
         push(reg_val);
         break;
@@ -285,6 +287,8 @@ uint8_t* VM::disas_inst(uint8_t* pc){
       cout<<endl;
       break;
     }
+    WHEN(TRUE):
+    WHEN(FALSE):
     WHEN(ADD):
     WHEN(MINUS):
     WHEN(MULT):

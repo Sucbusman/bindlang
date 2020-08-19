@@ -114,7 +114,15 @@ void interpFile(string const& fn){
 
 void compileFile(string const& fn){
   auto compiler = Compiler();
-  compiler.runFile(fn);
+  compiler.compileFile(fn);
+}
+
+void compileAndRun(string const& fn){
+  auto compiler = Compiler();
+  compiler.compileFile2mem(fn);
+  auto vm = vm::VM(move(compiler.coder.codes),
+                   move(compiler.coder.constants));
+  vm.run();
 }
 
 void scan(const char* path){
@@ -161,7 +169,7 @@ int main(int argc,char *argv[]){
   if(argc<2){
     repl();
   }else if(argc<3){
-    compileFile(string(argv[1]));
+    compileAndRun(string(argv[1]));
   }else if(argc<4){
     auto action = string(argv[1]);
 #define when(S) if(action == (S))

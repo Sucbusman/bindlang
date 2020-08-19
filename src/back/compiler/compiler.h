@@ -8,9 +8,11 @@ namespace bindlang{
 class Compiler{
  public:
   Compiler(){standardEnvironment();}
-  void runFile(string const&);
+  void compileFile2mem(string const&);
+  void compileFile(string const&);
   void compile(ExprPtr);
   void writeBinary(string const&);
+  vm::Coder coder;
  private:
   struct Local{
     uint32_t counter=0;
@@ -63,8 +65,8 @@ class Compiler{
   vector<Closure> closures;
 
   unordered_map<string,uint32_t> syscallTable;
+  unordered_map<string,std::function<void(ExprPtrList)>> keywords;
   int error_num = 0;
-  vm::Coder coder;
 };
 
 }
