@@ -1,0 +1,5 @@
+map = \f l
+->if(empty?(l)
+     []
+     cons(f(hd(l)) map(f tl(l))))
+print(print [1 2 3])

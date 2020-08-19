@@ -1,0 +1,6 @@
+times = \t f
+->if(lt(t 1)
+     1
+     begin(f(t) times(-(t 1) f)))
+
+times(5 \x->print(x))

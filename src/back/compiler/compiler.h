@@ -39,6 +39,7 @@ class Compiler{
   Local& curScope();
 
   void resolve(ExprPtr);
+  void resolveList(ExprPtr);
   void resolveDefine(ExprPtr);
   void resolveId(ExprPtr);
   void resolveCall(ExprPtr);
@@ -46,6 +47,7 @@ class Compiler{
   // gen code(& compile time)
   void standardEnvironment();
   void compileAtom(ExprPtr);
+  void compileList(ExprPtr);
   void compileId(ExprPtr);
   void compileDefine(ExprPtr);
   void compileFunc(ExprPtr);
@@ -55,6 +57,12 @@ class Compiler{
                     std::function<void(void)> f);
   void pushFunc(Local&, string const&, int,
                 std::function<void(void)> f);
+
+  inline void pushTopFunc(string const&,int,
+                          std::function<void(void)> f);
+
+  void pushVar(Local&,string const&,
+                         std::function<void(void)> f);
 
   // helper
   template <typename... Arg>

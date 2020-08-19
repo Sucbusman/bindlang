@@ -52,6 +52,12 @@ class Coder{
   void EQ();
   void TRUE();
   void FALSE();
+  void UNIT();
+  void RCONS();
+  void CONS();
+  void HEAD();
+  void TAIL();
+  void EMPTYP();
   void RET();
   void HALT();
   void CALL();

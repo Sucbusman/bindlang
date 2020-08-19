@@ -1,5 +1,3 @@
-make-adder = \x
-->\y->+(x y)
+myprint = \x->print(x)
 
-inc = make-adder(1)
-print(3.inc)
+myprint(3)

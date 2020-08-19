@@ -16,13 +16,14 @@
   f(ADD)  f(MINUS)   f(MULT) f(DIVIDE)                \
   f(EQ)   f(GT)      f(LT)                            \
   f(TRUE) f(FALSE)                                    \
+  f(UNIT) f(RCONS) f(CONS) f(HEAD) f(TAIL) f(EMPTYP)  \
   f(HALT) f(SYSCALL) 
   
 #define VM_EXPAND_LIST(i) i,
 #define VM_EXPAND_LIST_STR(i) #i,
 
 #define VM_INSTALL_ALL_VAL(f)\
-  f(NIL) f(BOOL) f(NUMBER) f(String) f(Procedure)
+  f(NIL) f(BOOL) f(NUMBER) f(String) f(Procedure) f(List)
 #define VM_EXPAND_VAL(i) VAL_##i,
 
 namespace bindlang  { namespace vm{
@@ -36,7 +37,8 @@ extern const char* valTable[];
 
 enum class objType : uint8_t {
   String,
-  Procedure
+  Procedure,
+  List
 };
 
 struct Obj{
@@ -58,7 +60,8 @@ struct ObjString:Obj{
   }
 };
 
-struct Value;//declare ahead
+struct Value;
+
 struct ObjProcedure:Obj{
   ObjProcedure(string name,int arity,
                uint32_t offset,Obj *next)
@@ -79,11 +82,13 @@ struct ObjProcedure:Obj{
 #define AS_CSTRING(v) (&((ObjString*)(AS_OBJ(v)))->s)
 #define AS_STRING(v) ((ObjString*)AS_OBJ(v)s)
 #define AS_PROCEDURE(v) ((ObjProcedure*)AS_OBJ(v))
+#define AS_LIST(v) ((ObjList*)AS_OBJ(v))
 
 typedef enum{
   VM_INSTALL_ALL_VAL(VM_EXPAND_VAL)
 }val_type;
 
+struct ObjList;
 struct Value{
   uint8_t type;
   union{
@@ -100,12 +105,27 @@ struct Value{
   Value(uint64_t number)
     :type(VAL_NUMBER){as.number = number;}
 #define OBJ2VAL(T)                               \
-  Value(Obj##T *obj):type(VAL_##T){as.obj = obj;}
+  Value(Obj##T *obj):type(VAL_##T){as.obj = (Obj*)obj;}
   OBJ2VAL(String);
   OBJ2VAL(Procedure);
+  OBJ2VAL(List);
 };
 
+struct ObjList:Obj{
+  ObjList(Value head,ObjList * tail,Obj *next)
+    :Obj((uint8_t)objType::List,next),head(head),tail(tail){}
+  Value head;
+  ObjList* tail;
+  Obj* clone(Obj** pchain) override {
+    auto o = new ObjList(head,tail,*pchain);
+    *pchain = o;
+    return o;
+  }
+};
+
+
 void printVal(Value const& val);
+void printList(Value const&,std::function<void(Value const&)> f);
 void inspectVal(Value const& val);
 bool truthy(Value const& val);
 bool valueEqual(Value const&,Value const&);
@@ -131,7 +151,8 @@ void ifgc();
 void recycleMem();
 ObjString* make_obj(string&);
 ObjString* make_obj(const char*);
-ObjProcedure* make_obj(string name,int arity,size_t offset);
+ObjProcedure* make_obj(string const&name,int arity,size_t offset);
+ObjList* make_obj(Value const& head,ObjList* tail);
 Value copy_val(Value const& v);
 
 } }

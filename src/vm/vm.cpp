@@ -77,10 +77,10 @@ void VM::dumpStack(){
       printIndent(4);
     }
     inspectVal(values[it]);
+    cout<<endl;
   }
   cout<<"    ------------------------------------"<<endl;
 }
-
 bool VM::run(){
 #define EAT(T) (*(T*)ip);ip+=sizeof(T)
 #define PEEK(T) (*(T*)ip)
@@ -92,6 +92,8 @@ bool VM::run(){
   do{auto r = pop();auto l = pop();            \
     rst_type ans = (l.as.type op r.as.type);   \
   reg_val = Value(ans);}while(0)
+#define EXPECT(T) \
+  if(reg_val.type != T){error("Expect " #T);break;}
   uint32_t word;
   uint64_t dword;
   while(true){
@@ -100,6 +102,16 @@ bool VM::run(){
     }
     uint8_t opc = EAT(uint8_t);
     switch(opc){
+      WHEN(SETG):{
+        word = EAT(uint32_t);
+        values[word]=reg_val;
+        break;
+      }
+      WHEN(GETG):{
+        word = EAT(uint32_t);
+        reg_val = values[word];
+        break;
+      }
       WHEN(SETC):{
         word = EAT(uint32_t);
         if(vsp){
@@ -128,9 +140,6 @@ bool VM::run(){
         reg_val = values[bp+word];
         break;
       }
-      WHEN(SETG):
-      WHEN(GETG):
-        break;
       WHEN(SYSCALL):
         word = EAT(uint32_t);
         if(not syscalls[word](*this)){
@@ -171,14 +180,54 @@ bool VM::run(){
       WHEN(DIVIDE): BINARY_OP(number,/,uint64_t);break;
       WHEN(GT):     BINARY_OP(number,>,bool);break;
       WHEN(LT):     BINARY_OP(number,<,bool);break;
+      WHEN(TRUE):reg_val = Value(true);break;
+      WHEN(FALSE):reg_val = Value(false);break;
       WHEN(EQ):{
         auto r = pop();
         auto l = pop();
         reg_val = Value(valueEqual(r, l));
         break;
       }
-      WHEN(TRUE):reg_val = Value(true);break;
-      WHEN(FALSE):reg_val = Value(false);break;
+      WHEN(UNIT):
+        reg_val = Value(make_obj(Value(false),nullptr));
+        break;
+      WHEN(RCONS):{
+        auto l = pop();
+        auto r = pop();
+        reg_val = Value(make_obj(l,AS_LIST(r)));
+        break;
+      }
+      WHEN(CONS):{
+        auto r = pop();
+        auto l = pop();
+        reg_val = Value(make_obj(l,AS_LIST(r)));
+        break;
+      }
+      WHEN(HEAD):{
+        reg_val = pop();
+        EXPECT(VAL_List);
+        auto lst = AS_LIST(reg_val);
+        reg_val = lst->head;
+        break;
+      }
+      WHEN(TAIL):{
+        reg_val = pop();
+        EXPECT(VAL_List);
+        auto lst = AS_LIST(reg_val);
+        reg_val = Value(lst->tail);
+        break;
+      }
+      WHEN(EMPTYP):{
+        reg_val = pop();
+        EXPECT(VAL_List);
+        auto lst = AS_LIST(reg_val);
+        if(lst->tail){
+          reg_val = Value(false);
+        }else{
+          reg_val = Value(true);
+        }
+        break;
+      }
       WHEN(PUSH):
         push(reg_val);
         break;
@@ -199,7 +248,6 @@ bool VM::run(){
       WHEN(JNE):{
         if(not truthy(reg_val)){
           ip += *(int32_t*)ip-1;
-          //DEBUG("jump to:0x"<<hex<<(int64_t)(ip-rom.data()));
         }else {
           EAT(uint32_t);
         }
@@ -227,6 +275,9 @@ bool VM::run(){
     }
   }
   return false;
+#undef BINARY_OP
+#undef PEEK
+#undef EXPECT
 #undef EAT
 }
 
@@ -250,12 +301,14 @@ uint8_t* VM::disas_inst(uint8_t* pc){
       uint32_t n = EAT(uint32_t);
       cout<<dec<<n<<"  #";
       inspectVal(constants[n]);
+      cout<<endl;
       break;
     }
     WHEN(CNSH):{
       uint64_t n = EAT(uint64_t);
       cout<<dec<<n<<"  #";
       inspectVal(constants[n]);
+      cout<<endl;
       break;
     }
     WHEN(IMM):{
@@ -296,6 +349,12 @@ uint8_t* VM::disas_inst(uint8_t* pc){
     WHEN(GT):
     WHEN(LT):
     WHEN(EQ):
+    WHEN(UNIT):
+    WHEN(CONS):
+    WHEN(RCONS):
+    WHEN(HEAD):
+    WHEN(TAIL):
+    WHEN(EMPTYP):
     WHEN(PUSH):
     WHEN(POP):
     WHEN(CALL):
@@ -316,6 +375,7 @@ uint8_t* VM::disas_inst(uint8_t* pc){
 void VM::dumpConstant(){
   for(auto & v:constants){
     inspectVal(v);
+    cout<<endl;
   }
 }
 

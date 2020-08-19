@@ -2,6 +2,7 @@
 #include <fstream>
 #include <unistd.h>
 #include "back/compiler/compiler.h"
+#include "define/type.h"
 #include "util/utils.h"
 namespace bindlang{
 
@@ -72,7 +73,7 @@ void Compiler::compileFile2mem(string const& fn){
   if(not hasError()){
     coder.HALT();
   }else{
-    cerr<<"compile failed"<<endl;
+    cerr<<"compile failed :("<<endl;
   }
 }
 
@@ -90,12 +91,13 @@ void Compiler::writeBinary(string const& fn){
 void Compiler::compile(ExprPtr expr){
   if(hasError()) return;
   switch(expr->type){
-    case ATOM:     return compileAtom(move(expr));break;
-    case ID:       return compileId(move(expr));break;
-    case DEFINE:   return compileDefine(move(expr));break;
-    case FUNC:     return compileFunc(expr->clone());break;
-    case CALL:     return compileCall(move(expr));break;
-    case EOF:      error_num++;coder.HALT();return;
+    case ATOM:     return compileAtom(move(expr));
+    case LIST:     return compileList(move(expr));
+    case ID:       return compileId(move(expr));
+    case DEFINE:   return compileDefine(move(expr));
+    case FUNC:     return compileFunc(expr->clone());
+    case CALL:     return compileCall(move(expr));
+    case EOF:      error_num++;coder.HALT();
     default:
       error("Unreachable");
       return;
@@ -114,6 +116,24 @@ void Compiler::compileAtom(ExprPtr expr){
     case tok_str:
       coder.CNST(vm::Value(vm::make_obj(tok.literal)));
       break;
+  }
+}
+
+void Compiler::resolveList(ExprPtr expr){
+  auto lst = move(rcast(ExprList*,expr)->container);
+  for(auto it=lst.rbegin();it!=lst.rend();it++){
+    resolve(move(*it));
+  }
+}
+
+void Compiler::compileList(ExprPtr expr){
+  auto lst = move(rcast(ExprList*,expr)->container);
+  coder.UNIT();
+  for(auto it=lst.rbegin();it!=lst.rend();it++){
+    coder.PUSH();
+    compile(move(*it));
+    coder.PUSH();
+    coder.RCONS();
   }
 }
 
@@ -159,7 +179,6 @@ void Compiler::compileId(ExprPtr expr){
     // if in the scope
     auto idx = locals.back().get(name);
     coder.GETL(idx);
-    return;
   }else if(closures.back().has(name)){
     // or if in the closure
     auto idx = closures.back().get(name);
@@ -175,6 +194,10 @@ void Compiler::resolveDefine(ExprPtr expr){
   auto name = def->id.literal;
   //if define function,the body should know function name
   //TODO:else compile error
+  auto it = keywords.find(name);
+  if(it!=keywords.end()){
+    error("can not define ",name,",this name is a keyword");
+  }
   curScope().set(name);
   resolve(move(def->expr));
 }
@@ -216,6 +239,7 @@ void Compiler::endScope(){
 
 void Compiler::resolve(ExprPtr expr){
   switch(expr->type){
+    case LIST:     return resolveList(move(expr));
     case DEFINE:   return resolveDefine(move(expr));
     case ID:       return resolveId(move(expr));
     case CALL:     return resolveCall(move(expr));
@@ -244,6 +268,14 @@ void Compiler::resolveCall(ExprPtr expr){
   auto call = rcast(ExprCall*,expr);
   for(auto & arg:call->args){
     resolve(move(arg));
+  }
+  if (call->callee->type == ID){
+    // check if keyword
+    auto name = rcast(ExprId*,call->callee->clone())->id.literal;
+    auto it = keywords.find(name);
+    if(it != keywords.end()){
+      return;
+    }
   }
   resolve(move(call->callee));
 }
@@ -292,6 +324,19 @@ void Compiler::pushFunc(Local & scope,
   return;
 }
 
+inline void Compiler::pushTopFunc(string const& name,
+                           int arity,
+                           std::function<void(void)> f){
+  pushFunc(toplevel,name,arity,f);
+}
+
+void Compiler::pushVar(Local & scope,string const& name,
+                       std::function<void(void)> f){
+  f();
+  coder.PUSH();
+  scope.set(name);
+}
+
 void Compiler::standardEnvironment(){
   // push predefine function
   // print
@@ -299,16 +344,21 @@ void Compiler::standardEnvironment(){
     coder.GETL(0);
     coder.SYSCALL(0);
   });
-  pushFunc(toplevel,"+",2,[this](){coder.ADD();});
-  pushFunc(toplevel,"-",2,[this](){coder.MINUS();});
-  pushFunc(toplevel,"*",2,[this](){coder.MULT();});
-  pushFunc(toplevel,"/",2,[this](){coder.DIVIDE();});
-  pushFunc(toplevel,"gt",2,[this](){coder.GT();});
-  pushFunc(toplevel,"lt",2,[this](){coder.LT();});
-  pushFunc(toplevel,"eq",2,[this](){coder.EQ();});
+  pushTopFunc("+",2,[this](){coder.ADD();});
+  pushTopFunc("-",2,[this](){coder.MINUS();});
+  pushTopFunc("*",2,[this](){coder.MULT();});
+  pushTopFunc("/",2,[this](){coder.DIVIDE();});
+  pushTopFunc("gt",2,[this](){coder.GT();});
+  pushTopFunc("lt",2,[this](){coder.LT();});
+  pushTopFunc("eq",2,[this](){coder.EQ();});
+  pushTopFunc("cons",1,[this](){coder.CONS();});
+  pushTopFunc("hd",1,[this](){coder.HEAD();});
+  pushTopFunc("tl",1,[this](){coder.TAIL();});
+  pushTopFunc("empty?",1,[this](){coder.EMPTYP();});
   keywords["if"] = [this](ExprPtrList args){
     if(args.size()!=2 and args.size()!=3)
-      error("Wrong argument number ",args.size(),", expect 2 or 3 args.");
+      error("Wrong argument number ",args.size(),
+            ", expect 2 or 3 args.");
     else{
       compile(move(args[0]));
       auto test_end = coder.tellp();
@@ -327,12 +377,93 @@ void Compiler::standardEnvironment(){
       coder.modify(then_end+1,else_end-then_end);
     }
   };
+
   keywords["begin"] = [this](ExprPtrList args){
     for(auto &arg:args){
       compile(move(arg));
     }
   };
+
+  keywords["while"] = [this](ExprPtrList args){
+    if(args.size()<1)
+      error("while expect more than one argument.");
+    else{
+      auto test_start = coder.tellp();
+      compile(move(args[0]));
+      auto body_start = coder.tellp();
+      coder.JNE(0);
+      auto it=args.begin();
+      for(++it;it!=args.end();++it){
+        compile(move(*it));
+      }
+      coder.JMP(test_start-coder.tellp());
+      auto body_end = coder.tellp();
+      coder.modify(body_start+1,body_end-body_start);
+    }
+  };
+
+  keywords["+"] = [this](ExprPtrList args){
+    if(args.size()<2)
+      error("plus expect twe more arguments.");
+    else{
+#define REDUCE(OP)                   \
+      compile(move(args[0]));        \
+      coder.OP();                               \
+      for(int i=1;i<args.size();i++){           \
+        coder.PUSH();                           \
+        compile(move(args[i]));                 \
+        coder.PUSH();                           \
+        coder.OP();                             \
+      }
+      REDUCE(ADD);
+    }
+  };
+  keywords["-"] = [this](ExprPtrList args){
+    if(args.size()<2)
+      error("minus expect twe more arguments.");
+    else{
+      REDUCE(MINUS);
+    }
+  };
+  keywords["*"] = [this](ExprPtrList args){
+    if(args.size()<2)
+      error("multiply expect twe more arguments.");
+    else{
+      REDUCE(MULT);
+    }
+  };
+  keywords["/"] = [this](ExprPtrList args){
+    if(args.size()<2)
+      error("divide expect twe more arguments.");
+    else{
+      REDUCE(DIVIDE);
+    }
+  };
+  keywords["hd"]=[this](ExprPtrList args){
+    if(args.size()!=1){
+      error("hd expect one argument.");
+    }else{
+      compile(move(args[0]));
+      coder.PUSH();
+      coder.HEAD();
+    }
+    coder.PUSH();
+  };
+  keywords["tl"]=[this](ExprPtrList args){
+    if(args.size()!=1){
+      error("hd expect one argument.");
+    }else{
+      compile(move(args[0]));
+      coder.PUSH();
+      coder.TAIL();
+    }
+    coder.PUSH();
+  };
+  pushVar(toplevel,"null",[this](){
+    coder.UNIT();
+  });
   locals.push_back(toplevel);
+  closures.push_back(Closure());
 }
 
 }

@@ -33,8 +33,8 @@ bool valueEqual(const Value & v1, const Value & v2){
 void printVal(Value const& val){
   // we should not print newline at here
   switch(val.type){
-    case VAL_NIL:    cout<<"Nil";
-    case VAL_BOOL:   cout<<val.as.boolean;break;
+    case VAL_NIL:    cout<<"nil";break;
+    case VAL_BOOL:   cout<<(val.as.boolean?"#t":"#f");break;
     case VAL_NUMBER: cout<<dec<<val.as.number;break;
     case VAL_String: cout<<*AS_CSTRING(val);break;
     case VAL_Procedure:{
@@ -44,22 +44,43 @@ void printVal(Value const& val){
           <<" 0x"<<std::hex<<proc->offset;
       break;
     }
+    case VAL_List:
+      printList(val,printVal);
+      break;
     default:
       cerr<<"Unreachable!"<<endl;
       break;
   }
 }
 
-void inspectVal(Value const& val){
-  try {
-    cout<<BLUECODE<<left<<setw(10)<<valTable[val.type]<<DEFAULT
-      <<' '<<hex<<&val<<' ';
-  } catch(...){
-    cout<<"throw"<<endl;
+void printList(Value const& val,
+               std::function<void(Value const&)> f){
+  cout<<"[";
+  bool first = true;
+  ObjList* o = AS_LIST(val);
+  while(o){
+    if(first){
+      if(o->tail){
+        first = false;
+        f(o->head);
+      }
+    }else{
+      if(o->tail){//omit last ObjList(bool,nullptr)
+        cout<<' ';
+        f(o->head);
+      }
+    }
+    o = o->tail;
   }
+  cout<<']';
+}
+
+void inspectVal(Value const& val){
+  cout<<BLUECODE<<left<<setw(10)<<valTable[val.type]<<DEFAULT
+      <<' '<<hex<<&val<<' ';
   switch(val.type){
-    case VAL_NIL:    cout<<"Nil";break;
-    case VAL_BOOL:   cout<<val.as.boolean;break;
+    case VAL_NIL:    cout<<"nil";break;
+    case VAL_BOOL:   cout<<(val.as.boolean?"#t":"#f");break;
     case VAL_NUMBER: cout<<val.as.number;break;
     case VAL_String: cout<<*AS_CSTRING(val);break;
     case VAL_Procedure:{
@@ -67,10 +88,12 @@ void inspectVal(Value const& val){
       cout<<proc->name<<'('<<proc->arity<<')'<<" 0x"<<std::hex<<proc->offset;
       break;
     }
+    case VAL_List:
+      printList(val,inspectVal);
+      break;
     default:
       break;
   }
-  cout<<endl;
 }
 
 // environment

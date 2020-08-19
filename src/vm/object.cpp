@@ -1,3 +1,4 @@
+#include "back/interpreter/value.h"
 #include "vm/vm.h"
 
 namespace bindlang::vm{
@@ -30,8 +31,14 @@ ObjString* make_obj(const char* s){
   return o;
 }
 
-ObjProcedure* make_obj(string name,int arity,size_t offset){
+ObjProcedure* make_obj(string const&name,int arity,size_t offset){
   auto o = new ObjProcedure(name,arity,offset,objchain);
+  objchain = o;
+  return o;
+}
+
+ObjList* make_obj(Value const& head,ObjList* tail){
+  auto o = new ObjList(head,tail,objchain);
   objchain = o;
   return o;
 }
@@ -45,6 +52,8 @@ Value copy_val(Value const& v){
     case VAL_NUMBER:
       val.as = v.as;
       break;
+    case VAL_List:
+    case VAL_Procedure:
     case VAL_String:{
       auto o =v.as.obj;
       val.as.obj = o->clone(&objchain);
