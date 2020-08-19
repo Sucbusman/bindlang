@@ -38,8 +38,10 @@ void printVal(Value const& val){
     case VAL_NUMBER: cout<<dec<<val.as.number;break;
     case VAL_String: cout<<*AS_CSTRING(val);break;
     case VAL_Procedure:{
-      auto offset = AS_PROCEDURE(val)->offset;
-      cout<<"<procedure> 0x"<<std::hex<<offset;
+      auto proc = AS_PROCEDURE(val);
+      cout<<"<procedure> "<<proc->name<<' '
+          <<'('<<proc->arity<<')'
+          <<" 0x"<<std::hex<<proc->offset;
       break;
     }
     default:
@@ -49,16 +51,20 @@ void printVal(Value const& val){
 }
 
 void inspectVal(Value const& val){
-  cout<<BLUECODE<<left<<setw(10)<<valTable[val.type]<<DEFAULT
+  try {
+    cout<<BLUECODE<<left<<setw(10)<<valTable[val.type]<<DEFAULT
       <<' '<<hex<<&val<<' ';
+  } catch(...){
+    cout<<"throw"<<endl;
+  }
   switch(val.type){
     case VAL_NIL:    cout<<"Nil";break;
     case VAL_BOOL:   cout<<val.as.boolean;break;
     case VAL_NUMBER: cout<<val.as.number;break;
     case VAL_String: cout<<*AS_CSTRING(val);break;
     case VAL_Procedure:{
-      auto offset = AS_PROCEDURE(val)->offset;
-      cout<<"offset:0x"<<std::hex<<offset;
+      auto proc = AS_PROCEDURE(val);
+      cout<<proc->name<<'('<<proc->arity<<')'<<" 0x"<<std::hex<<proc->offset;
       break;
     }
     default:

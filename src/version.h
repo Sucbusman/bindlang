@@ -26,7 +26,7 @@
 //    negative: less than
 //    zero:     equal
 //    positive: greater than
-inline int CompareVersion(int major, int minor, int patch) {
+inline int compareVersion(int major, int minor, int patch) {
   int tar = major * 1000000 + minor * 10000 + patch;
   int cur = APP_VERSION_MAJOR * 1000000;
   cur += APP_VERSION_MINOR * 10000 + APP_VERSION_PATCH;

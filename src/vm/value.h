@@ -12,10 +12,10 @@
 #define VM_INST_IMM_MASK  ((1<<VM_INST_OPR_WIDTH)-1)
 
 #define VM_INSTALL_ALL_INST(f) \
-  f(GETL) f(GETG)    f(SETL) f(SETG)                  \
-  f(CNST) f(CNSH)    f(IMM)                           \
+  f(GETL) f(GETG) f(SETC) f(GETC) f(SETL) f(SETG)     \
+  f(CNST) f(CNSH) f(IMM)                              \
   f(PUSH) f(POP)                                      \
-  f(FUN)  f(CALL)    f(TCALL)    f(RET)               \
+  f(CAPTURE)  f(CALL) f(TCALL) f(RET)                 \
   f(JMP)  f(JNE)                                      \
   f(ADD)  f(MINUS)   f(MULT) f(DIVIDE)                \
   f(EQ)   f(GT)      f(LT)                            \
@@ -61,6 +61,7 @@ struct ObjString:Obj{
   }
 };
 
+struct Value;//declare ahead
 struct ObjProcedure:Obj{
   ObjProcedure(string name,int arity,
                uint32_t offset,Obj *next)
@@ -74,6 +75,7 @@ struct ObjProcedure:Obj{
   string name;
   int arity;
   size_t offset;//offset to the procedure start in rom
+  vector<Value> captureds;
 };
 
 #define AS_OBJ(v) (v.as.obj)

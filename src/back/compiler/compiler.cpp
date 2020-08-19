@@ -6,6 +6,7 @@
 namespace bindlang{
 
 template <typename... Arg>
+
 void Compiler::error(Arg... args){
   cerr<<RED("Compile Error:");
   (cerr<< ... <<args)<<endl;
@@ -14,12 +15,12 @@ void Compiler::error(Arg... args){
 
 bool Compiler::hasError(){return error_num>0;}
 
-int Compiler::Local::set(string const& name){
+uint32_t Compiler::Local::set(string const& name){
   map[name] = counter;
   return counter++;
 }
 
-int Compiler::Local::get(string const& name){
+uint32_t Compiler::Local::get(string const& name){
   auto it = map.find(name);
   if(it!=map.end()){
     return it->second;
@@ -32,10 +33,16 @@ bool Compiler::Local::has(string const& name){
   return it!=map.end();
 }
 
-int Compiler::Closure::set(string const& name,
-                           int distance,int idx){
-  map[name] = values.size();
-  values.push_back(CapturedVal{distance,idx});
+uint32_t Compiler::Closure::set(string const& name,
+                           bool iflocal,uint32_t idx){
+  auto count = values.size();
+  map[name] = count;
+  values.push_back(vm::Coder::CapturedValue{idx,iflocal,1});
+  return count;
+}
+
+uint32_t Compiler::Closure::get(string const&name){
+  return map[name];
 }
 
 bool Compiler::Closure::has(string const&name){
@@ -60,7 +67,6 @@ void Compiler::runFile(string const& fn){
     auto expr = parser.parseNext();
     if(not expr or expr->type<0)
       break;
-    //expr->show();
     compile(move(expr));
   }
   if(not hasError()){
@@ -107,24 +113,41 @@ void Compiler::compileAtom(ExprPtr expr){
 
 void Compiler::resolveId(ExprPtr expr){
   auto name = rcast(ExprId*,expr)->id.literal;
+  cout<<"when resolve "<<name<<endl;//debug
   if(curScope().has(name)) return;
   else if(locals.size()>1){
     // check closure
-    if(closure.has(name)) return;
+    if(closures.back().has(name)) return;
     // check outer scope
     auto it = locals.rbegin();++it;
-    for(int distance=0;it!=locals.rend();++it,++distance){
+    for(int distance=1;it!=locals.rend();++it,++distance){
       if(it->has(name)){
         // capture it to closure
-        auto idx = it->get(name);
-        closure.set(name,distance,idx);
-        return;
+        auto lidx = it->get(name);
+        cout<<"capture "<<name<<" at "<<distance<<':'<<lidx<<endl;
+        auto j = closures.size()-distance;
+        cout<<"j:"<<j<<endl;
+        uint32_t vidx;
+        if(closures[j].has(name)){
+          vidx = closures[j].get(name);
+        }else{
+          vidx = closures[j].set(name,true,lidx);
+        }
+        for(++j;j<closures.size();++j){
+          if(closures[j].has(name)){
+            vidx = closures[j].get(name);
+          }else{
+            vidx = closures[j].set(name,false,vidx);
+          }
+        }
+        break;
       }
     }
+  }else{
+    // or compile error
+    cout<<"in resolve name is:"<<name<<endl;
+    error("using undefined variable ",name);
   }
-  // or compile error
-  cout<<"in resolve name is:"<<name<<endl;
-  error("using undefined variable ",name);
 }
 
 void Compiler::compileId(ExprPtr expr){
@@ -134,15 +157,15 @@ void Compiler::compileId(ExprPtr expr){
     auto idx = locals.back().get(name);
     coder.GETL(idx);
     return;
-  }else{
+  }else if(closures.back().has(name)){
     // or if in the closure
-    if( closure.has(name)){
-      
-    }
+    auto idx = closures.back().get(name);
+    coder.GETC(idx);
+  }else{
+    // or compile error
+    cout<<"use name is:"<<name<<endl;
+    error("using undefined variable ",name);
   }
-  // or compile error
-  cout<<"use name is:"<<name<<endl;
-  error("using undefined variable ",name);
 }
 
 void Compiler::resolveDefine(ExprPtr expr){
@@ -169,21 +192,25 @@ void Compiler::beginScope(vector<string> const& args){
   for(auto &arg:args){
     scope.set(arg);
   }
+  closures.push_back(Closure());
   locals.push_back(scope);
 }
 
 void Compiler::beginScope(){
+  closures.push_back(Closure());
   locals.push_back(Local());
 }
 
 void Compiler::endScope(){
   locals.pop_back();
+  closures.pop_back();
 }
 
 void Compiler::resolve(ExprPtr expr){
   switch(expr->type){
     case DEFINE:   return resolveDefine(move(expr));
     case ID:       return resolveId(move(expr));
+    case CALL:     return resolveCall(move(expr));
     default: return;
   }
 }
@@ -198,23 +225,27 @@ void Compiler::compileFunc(ExprPtr expr){
   emitFunc("anony",(uint32_t)params.size(),
            [this,func](){
              compile(move(func->body));
-             coder.RET();
            });
-  closure.clear();
+  coder.CAPTURE(closures.back().values);
   endScope();
+}
+
+void Compiler::resolveCall(ExprPtr expr){
+  auto call = rcast(ExprCall*,expr);
+  for(auto & arg:call->args){
+    resolve(move(arg));
+  }
+  resolve(move(call->callee));
 }
 
 void Compiler::compileCall(ExprPtr expr){
   auto call = rcast(ExprCall*,expr);
-  compile(move(call->callee));
-  coder.PUSH();
-  auto idx = locals.back().set("temp");
   auto args = move(call->args);
   for(auto & arg:args){
     compile(move(arg));
     coder.PUSH();
   }
-  coder.GETL(idx);
+  compile(move(call->callee));
   coder.CALL();
 }
 
@@ -225,6 +256,7 @@ uint32_t Compiler::emitFunc(string const& name,
   coder.JMP(0);//place holder,jump out of function code
   auto pos_func = coder.tellp();
   f();
+  coder.RET();//normal function always return...
   coder.modify(pos_jmp+1,coder.tellp()-pos_jmp);//patch
   coder.CNST(vm::Value(vm::make_obj(name,arity,pos_func)));
   return coder.tellp();
@@ -247,7 +279,18 @@ void Compiler::standardEnvironment(){
   pushFunc(toplevel,"print",1,[this](){
     coder.GETL(0);
     coder.SYSCALL(0);
-    coder.RET();
+  });
+  pushFunc(toplevel,"+",2,[this](){
+    coder.ADD();
+  });
+  pushFunc(toplevel,"-",2,[this](){
+    coder.MINUS();
+  });
+  pushFunc(toplevel,"*",2,[this](){
+    coder.MULT();
+  });
+  pushFunc(toplevel,"/",2,[this](){
+    coder.DIVIDE();
   });
   locals.push_back(toplevel);
 }

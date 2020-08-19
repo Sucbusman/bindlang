@@ -134,7 +134,7 @@ bool Coder::readBinary(const char* fname){
     return false;
   }
   ifs.read((char*)&check,4);
-  if(ifs.fail() or not compareVersion(check)){
+  if(ifs.fail() ){//TODO:compare version
     cerr<<"Different version with vm "<<hex<<check<<endl;
     return false;
   }
@@ -161,13 +161,6 @@ bool Coder::writeBinary(const char* fname){
   ofs.write(PtrCast<char>(&ver_info),sizeof(ver_info));
   ofs.write((char*)content.data(),content.size());
   return true;
-}
-
-bool Coder::compareVersion(uint32_t check){
-  uint32_t ver_info = ((1 & 0xfff)<<20)
-                     |((1 & 0xff) <<12)
-                     |( 1 & 0xfff);
-  return check == ver_info;
 }
 
 // constants
@@ -197,6 +190,14 @@ void Coder::push5(OpCode opc,uint32_t opr){
   codes.push_back(bytes[1]);
   codes.push_back(bytes[2]);
   codes.push_back(bytes[3]);
+}
+
+void Coder::push4(uint32_t word){
+  uint8_t *bytes = PtrCast<uint8_t>(&word);
+  codes.push_back(bytes[0]);
+  codes.push_back(bytes[1]);
+  codes.push_back(bytes[2]);
+  codes.push_back(bytes[3]); 
 }
 
 void Coder::push9(OpCode opc,uint64_t opr){
@@ -229,6 +230,14 @@ size_t Coder::CNSH(Value v){
   return idx;
 }
 
+size_t Coder::CAPTURE(vector<CapturedValue>& value_infos){
+  push1(OpCode::CAPTURE);
+  for(auto & info:value_infos){
+    push4(*reinterpret_cast<uint32_t*>(&info));
+  }
+  push4(0u);//indicate captured value encode end
+  return tellp();
+}
 
 #define INST1(F) \
   void Coder::F(){                              \
@@ -258,8 +267,9 @@ INST1(CALL);
 INST5(JNE);
 INST5(SYSCALL);
 INST5(JMP);
+INST5(GETC);
+INST5(SETC);
 INST5(GETL);
-INST5(FUN);
 INST5(SETL);
 INST5(CNST);
 INST9(IMM);

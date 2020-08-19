@@ -13,22 +13,18 @@ class Compiler{
   void writeBinary(string const&);
  private:
   struct Local{
-    int counter=0;
-    unordered_map<string,int> map;
-    int  set(string const&);
-    int  get(string const&);
+    uint32_t counter=0;
+    unordered_map<string,uint32_t> map;
+    uint32_t set(string const&);
+    uint32_t get(string const&);
     bool has(string const&);
-  };
-
-  struct CapturedVal{
-    int distance;
-    int idx;
   };
 
   struct Closure{
     unordered_map<string,size_t> map;
-    vector<CapturedVal> values;
-    int  set(string const&,int distance, int idx);
+    vector<vm::Coder::CapturedValue> values;
+    uint32_t set(string const&,bool iflocal,uint32_t idx);
+    uint32_t get(string const&);
     bool has(string const&);
     void clear();
   };
@@ -42,6 +38,7 @@ class Compiler{
   void resolve(ExprPtr);
   void resolveDefine(ExprPtr);
   void resolveId(ExprPtr);
+  void resolveCall(ExprPtr);
 
   // gen code(& compile time)
   void standardEnvironment();
@@ -63,7 +60,7 @@ class Compiler{
 
   Local toplevel;
   vector<Local> locals;
-  Closure closure;
+  vector<Closure> closures;
 
   unordered_map<string,uint32_t> syscallTable;
   int error_num = 0;

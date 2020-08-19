@@ -14,11 +14,12 @@ typedef enum{
 }SYSCALL_TABLE;
 
 struct callFrame{
-  callFrame(uint8_t* ip,size_t bp,size_t sp)
-    :ip(ip),bp(bp),sp(sp){}
+  callFrame(uint8_t* ip,size_t bp,size_t sp,vector<Value>* vsp)
+    :ip(ip),bp(bp),sp(sp),vsp(vsp){}
   uint8_t* ip;
   size_t   bp;
   size_t   sp;
+  vector<Value>* vsp;
 };
 
 class VM{
@@ -35,8 +36,9 @@ class VM{
   void reset();
   bool run();
   uint8_t* disas_inst(uint8_t*);
+  void dumpConstant();
   void disassemble();
-
+  
   // helper
   template<class... Args>
   bool error(Args... args);
@@ -52,15 +54,16 @@ class VM{
   void  push(Value val);
   Value pop();
 
-  // call frame
-  vector<callFrame> frames;
-
   // register
   uint8_t* ip;
   Value    reg_val;
   size_t   bp = 0;
   size_t   sp = 0;
+  vector<Value>* vsp = nullptr;
   bool     debug = false;
+
+  // last call frames
+  vector<callFrame> frames;
 
   // syscall
   using  thunk = bool(*)(VM&);

@@ -20,8 +20,11 @@ void VM::reset(){
   ip = (this->rom).data();
   syscalls.clear();
   standardSyscalls();
+  frames.clear();
+  frames.push_back(callFrame(0,0,0,nullptr));
   bp  = 0;
   sp  = 0;
+  vsp = nullptr;
 }
 
 void VM::init(vector<std::uint8_t> &&codes,
@@ -58,7 +61,8 @@ void printIndent(int n){
 }
 
 void VM::dumpRegs(){
-  cout<<"  sp:0x"<<hex<<sp<<" bp:0x"<<hex<<bp<<" val_reg:";
+  cout<<"  frame:"<<frames.size()
+      <<" sp:0x"<<hex<<sp<<" bp:0x"<<hex<<bp<<" val_reg:";
   printVal(reg_val);
   cout<<endl;
 }
@@ -96,14 +100,32 @@ bool VM::run(){
     }
     uint8_t opc = EAT(uint8_t);
     switch(opc){
+      WHEN(SETC):{
+        word = EAT(uint32_t);
+        if(vsp){
+          (*vsp)[word] = reg_val;
+        }else{
+          error("captured values ptr is null");
+        }
+        break;
+      }
+      WHEN(GETC):{
+        word = EAT(uint32_t);
+        if(vsp){
+          reg_val = (*vsp)[word];
+        }else{
+          error("captured values ptr is null");
+        }
+        break;
+      }
       WHEN(SETL):{
-        int32_t offset = EAT(int32_t);
-        values[bp+offset] = reg_val;
+        word = EAT(uint32_t);
+        values[bp+word] = reg_val;
         break;
       }
       WHEN(GETL):{
-        int32_t offset = EAT(int32_t);
-        reg_val = values[bp+offset];
+        word = EAT(uint32_t);
+        reg_val = values[bp+word];
         break;
       }
       WHEN(SETG):
@@ -115,7 +137,21 @@ bool VM::run(){
           return false;
         }
         break;
-      WHEN(FUN):
+      WHEN(CAPTURE):{
+        auto val_info = EAT(uint32_t);
+        while(val_info != 0u){
+          bool localp = val_info & (1u<<30);
+          auto idx = val_info & ~(3u<<30);
+          auto proc = AS_PROCEDURE(reg_val);
+          if(localp){
+            proc->captureds.push_back(values[bp+idx]);
+          }else{
+            proc->captureds.push_back((*vsp)[idx]);
+          }
+          val_info = EAT(uint32_t);
+        }
+        break;
+      }
       WHEN(CNST):{
         word = EAT(uint32_t);
         reg_val = constants[word];
@@ -150,7 +186,8 @@ bool VM::run(){
       WHEN(TCALL):
       WHEN(CALL):{
          auto func = AS_PROCEDURE(reg_val);
-         frames.push_back( callFrame(ip,bp,sp-func->arity));
+         frames.push_back(callFrame(ip,bp,sp-func->arity,vsp));
+         vsp = &func->captureds;
          bp = sp-func->arity;
          ip = rom.data()+func->offset;//jump
          break;
@@ -170,6 +207,7 @@ bool VM::run(){
         sp = frames.back().sp;
         bp = frames.back().bp;
         ip = frames.back().ip;
+        vsp = frames.back().vsp;
         frames.pop_back();
         break;
       }
@@ -198,6 +236,8 @@ uint8_t* VM::disas_inst(uint8_t* pc){
   switch (opc){
     WHEN(SETL):
     WHEN(GETL):
+    WHEN(SETC):
+    WHEN(GETC):
     WHEN(SETG):
     WHEN(GETG):{
       int32_t n = EAT(int32_t);
@@ -233,7 +273,18 @@ uint8_t* VM::disas_inst(uint8_t* pc){
       cout<<dec<<n<<endl;
       break;
     }
-    WHEN(FUN):
+    WHEN(CAPTURE):{
+      auto val_info = EAT(uint32_t);
+      cout<<"#";
+      while(val_info != 0u){
+        bool localp = val_info & (1u<<30);
+        auto idx = val_info & ~(3u<<30);
+        cout<<"<"<<localp<<":"<<idx<<"> ";
+        val_info = EAT(uint32_t);
+      }
+      cout<<endl;
+      break;
+    }
     WHEN(ADD):
     WHEN(MINUS):
     WHEN(MULT):
@@ -258,8 +309,16 @@ uint8_t* VM::disas_inst(uint8_t* pc){
 #undef EAT
 }
 
+void VM::dumpConstant(){
+  for(auto & v:constants){
+    inspectVal(v);
+  }
+}
+
 void VM::disassemble(){
   auto pc = ip;
+  dumpConstant();
+  cout<<"=============="<<endl;
   while(pc-rom.data()<rom.size()){
     pc=disas_inst(pc);
   }
