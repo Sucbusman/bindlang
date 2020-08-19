@@ -130,6 +130,7 @@ void Compiler::resolveId(ExprPtr expr){
         // capture it to closure
         auto lidx = it->get(name);
         auto j = closures.size()-distance;
+      //cout<<"capture "<<name<<" at "<<distance<<' '<<lidx<<endl;
         uint32_t vidx;
         if(closures[j].has(name)){
           vidx = closures[j].get(name);
@@ -172,8 +173,10 @@ void Compiler::compileId(ExprPtr expr){
 void Compiler::resolveDefine(ExprPtr expr){
   auto def = rcast(ExprDefine*,expr);
   auto name = def->id.literal;
-  resolve(move(def->expr));
+  //if define function,the body should know function name
+  //TODO:else compile error
   curScope().set(name);
+  resolve(move(def->expr));
 }
 
 void Compiler::compileDefine(ExprPtr expr){
@@ -183,9 +186,9 @@ void Compiler::compileDefine(ExprPtr expr){
   if(it!=keywords.end()){
     error("can not define ",name," this name is keyword");
   }
+  curScope().set(name);
   compile(move(def->expr));
   coder.PUSH();
-  curScope().set(name);
 }
 
 inline Compiler::Local& Compiler::curScope(){
@@ -231,7 +234,9 @@ void Compiler::compileFunc(ExprPtr expr){
            [this,func](){
              compile(move(func->body));
            });
+  coder.PUSH();//for capture itself in recursion function
   coder.CAPTURE(closures.back().values);
+  coder.POP();
   endScope();
 }
 
@@ -320,6 +325,11 @@ void Compiler::standardEnvironment(){
       }
       auto else_end = coder.tellp();
       coder.modify(then_end+1,else_end-then_end);
+    }
+  };
+  keywords["begin"] = [this](ExprPtrList args){
+    for(auto &arg:args){
+      compile(move(arg));
     }
   };
   locals.push_back(toplevel);

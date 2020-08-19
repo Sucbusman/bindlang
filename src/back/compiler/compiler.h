@@ -12,6 +12,7 @@ class Compiler{
   void compileFile(string const&);
   void compile(ExprPtr);
   void writeBinary(string const&);
+  bool hasError();
   vm::Coder coder;
  private:
   struct Local{
@@ -58,7 +59,6 @@ class Compiler{
   // helper
   template <typename... Arg>
   void error(Arg... args);
-  bool hasError();
 
   Local toplevel;
   vector<Local> locals;

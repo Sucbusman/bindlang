@@ -2,4 +2,4 @@ make-adder = \x
 ->\y->+(x y)
 
 inc = make-adder(1)
-print(inc(3))
+print(3.inc)

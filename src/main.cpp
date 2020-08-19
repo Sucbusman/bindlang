@@ -120,9 +120,11 @@ void compileFile(string const& fn){
 void compileAndRun(string const& fn){
   auto compiler = Compiler();
   compiler.compileFile2mem(fn);
-  auto vm = vm::VM(move(compiler.coder.codes),
+  if(not compiler.hasError()){
+    auto vm = vm::VM(move(compiler.coder.codes),
                    move(compiler.coder.constants));
-  vm.run();
+    vm.run();
+  }
 }
 
 void scan(const char* path){

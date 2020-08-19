@@ -1,0 +1,5 @@
+fac = \n
+->if(lt(n 2)
+     1
+     *(n fac(-(n 1))))
+print(fac(4))
