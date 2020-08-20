@@ -17,7 +17,7 @@
   f(EQ)   f(GT)      f(LT)                            \
   f(TRUE) f(FALSE)                                    \
   f(UNIT) f(RCONS) f(CONS) f(HEAD) f(TAIL) f(EMPTYP)  \
-  f(HALT) f(SYSCALL) 
+  f(HALT) f(SYSCALL) f(COPY)
   
 #define VM_EXPAND_LIST(i) i,
 #define VM_EXPAND_LIST_STR(i) #i,
@@ -61,7 +61,6 @@ struct ObjString:Obj{
 };
 
 struct Value;
-
 struct ObjProcedure:Obj{
   ObjProcedure(string name,int arity,
                uint32_t offset,Obj *next)
@@ -69,6 +68,7 @@ struct ObjProcedure:Obj{
      name(name),arity(arity),offset(offset){}
   Obj* clone(Obj** pchain) override {
     auto o = new ObjProcedure(name,arity,offset,*pchain);
+    o->captureds = captureds;
     *pchain = o;
     return o;
   }

@@ -22,7 +22,8 @@
                      "push!" "pop!" "set!" "take" "len"
                      "not" "and" "or"
                      "+" "-" "*" "/"
-                     "=>" "'"
+                     "=>" "'" "#t" "#f" "null"
+                     "hd" "tl" "cons" "empty?"
                      "begin" "if" "while"
                      "print" ))
          symbol-end)
@@ -88,9 +89,10 @@
 (defvar bindlang-mode-syntax-table
   (let ((st (make-syntax-table)))
     (modify-syntax-entry ?_ "w" st)
+    (modify-syntax-entry ?# "w" st)
     (modify-syntax-entry ?- "_" st)
     (modify-syntax-entry ?> "_" st)
-    (modify-syntax-entry ?# "<" st)
+    (modify-syntax-entry ?\; "<" st)
     (modify-syntax-entry ?\n ">b" st)
     st)
   "Sysntax table for bindlang-mode")

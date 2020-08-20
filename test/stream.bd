@@ -1,0 +1,26 @@
+; test stream programing idom
+;; helper
+snd = \t->t.tl.hd
++1 = \x->+(x 1)
+println = \x->begin(print(x) print("\n"))
+
+;; stream maker
+mk-stream=\f init
+->begin(h=\n
+        ->[n \->h(f(n))]
+        \->h(init))
+
+;; natural numbers
+nats = mk-stream(\x->x.+1 1)
+two-powers = mk-stream(\x->*(2 x) 1)
+
+;; stream consumer
+nth = \n s
+->if(eq(n 1)
+     hd(s())
+     nth(-(n 1) snd(s())))
+
+
+println("===test===")
+println(nth(5 nats))
+println(nth(5 two-powers))

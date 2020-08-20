@@ -1,0 +1,2 @@
+make-thunk = \f ->[#f f]
+delay = \t ->[#f t] ;;need has some mutable to implement rest

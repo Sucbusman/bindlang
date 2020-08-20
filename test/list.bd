@@ -1,5 +1,28 @@
-map = \f l
-->if(empty?(l)
-     []
-     cons(f(hd(l)) map(f tl(l))))
-print(print [1 2 3])
+println=\x->begin(print(x) print("\n"))
+println("===cons===")
+a = [3]
+b = cons(2 a)
+c = cons(1 b)
+print(a)
+print(b)
+println(c)
+
+println("===hd tl===")
+print(hd(c))
+println(c.tl)
+
+println("===empty?===")
+println(empty?(c))
+println(empty?([]))
+
+println("===append===")
+
+append=\xs last
+->if(empty?(xs)
+     [last]
+     cons(hd(xs) append(tl(xs) last)))
+
+println(append(c 4))
+
+println("===eval than list===")
+println([+(1 2) *(3 4) "haha"])

@@ -42,6 +42,7 @@ class VM{
   // helper
   template<class... Args>
   bool error(Args... args);
+  inline bool hasError();
   void dumpStack();
   void dumpRegs();
 
@@ -75,6 +76,9 @@ class VM{
   Env toplevel;
   stack<Env> envs;
   void standardEnv();
+
+  //helper
+  int error_num=0;
 };
 
 bool sys_print(VM& vm);

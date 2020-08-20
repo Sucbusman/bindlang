@@ -1,4 +1,11 @@
 a=1
 b=2
 c=3
-print(+(a b c))
+print("\n+a b=")
+print(+(a b))
+
+print("\n+b c=")
+print(+(b c))
+
+print("\n+c a=")
+print(+(c a))

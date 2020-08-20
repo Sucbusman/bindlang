@@ -13,7 +13,12 @@ using std::endl;
 template <class... Args>
 bool VM::error(Args...args){
   (cerr<< ... <<args)<<endl;
+  error_num++;
   return false;
+}
+
+inline bool VM::hasError(){
+  return error_num>0;
 }
 
 void VM::reset(){
@@ -96,7 +101,7 @@ bool VM::run(){
   if(reg_val.type != T){error("Expect " #T);break;}
   uint32_t word;
   uint64_t dword;
-  while(true){
+  while(not hasError()){
     if(debug){
       disas_inst(ip);//debug
     }
@@ -169,6 +174,9 @@ bool VM::run(){
       WHEN(CNSH):
         reg_val = constants[*dwordp];
         ip+=8;
+        break;
+      WHEN(COPY):
+        reg_val = copy_val(reg_val);
         break;
       WHEN(IMM):
         dword = EAT(uint64_t);
@@ -334,7 +342,7 @@ uint8_t* VM::disas_inst(uint8_t* pc){
       while(val_info != 0u){
         bool localp = val_info & (1u<<30);
         auto idx = val_info & ~(3u<<30);
-        cout<<"<"<<localp<<":"<<idx<<"> ";
+        cout<<"<"<<dec<<localp<<":"<<dec<<idx<<"> ";
         val_info = EAT(uint32_t);
       }
       cout<<endl;

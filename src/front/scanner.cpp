@@ -154,7 +154,7 @@ void Scanner::skipWhitespace(){
       cache.clear();
       nextChar();
       break;
-    case '#':
+    case ';':
       skipUntil([](char ch){return ch=='\n';});
       break;
     default:
@@ -278,7 +278,7 @@ Token Scanner::tokString(){
 }
 
 bool Scanner::isIdStart(char ch){
-  if(isalpha(ch) or isop(ch) or ch=='_'){
+  if(isalpha(ch) or isop(ch) or ch=='_' or ch=='#'){
     return true;
   }
   else

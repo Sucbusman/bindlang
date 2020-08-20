@@ -22,11 +22,7 @@ uint32_t Compiler::Local::set(string const& name){
 }
 
 uint32_t Compiler::Local::get(string const& name){
-  auto it = map.find(name);
-  if(it!=map.end()){
-    return it->second;
-  }
-  return 0;
+  return map[name];
 }
 
 bool Compiler::Local::has(string const& name){
@@ -198,7 +194,7 @@ void Compiler::resolveDefine(ExprPtr expr){
   if(it!=keywords.end()){
     error("can not define ",name,",this name is a keyword");
   }
-  curScope().set(name);
+  curScope().set(name);//!here bug
   resolve(move(def->expr));
 }
 
@@ -210,6 +206,7 @@ void Compiler::compileDefine(ExprPtr expr){
     error("can not define ",name," this name is keyword");
   }
   curScope().set(name);
+  //cout<<name<<" scope index:"<<curScope().get(name)<<endl;
   compile(move(def->expr));
   coder.PUSH();
 }
@@ -253,7 +250,9 @@ void Compiler::compileFunc(ExprPtr expr){
   beginScope(mapvec<Token,string>(params,
                     [](Token& tok)->string{
                       return tok.literal;}));
+  auto locals_backup = locals;
   resolve(func->body->clone());
+  locals = locals_backup;
   emitFunc("anony",(uint32_t)params.size(),
            [this,func](){
              compile(move(func->body));
@@ -310,6 +309,7 @@ uint32_t Compiler::emitFunc(string const& name,
   coder.RET();//normal function always return...
   coder.modify(pos_jmp+1,coder.tellp()-pos_jmp);//patch
   coder.CNST(vm::Value(vm::make_obj(name,arity,pos_func)));
+  coder.COPY();
   return coder.tellp();
 }
 
@@ -351,7 +351,7 @@ void Compiler::standardEnvironment(){
   pushTopFunc("gt",2,[this](){coder.GT();});
   pushTopFunc("lt",2,[this](){coder.LT();});
   pushTopFunc("eq",2,[this](){coder.EQ();});
-  pushTopFunc("cons",1,[this](){coder.CONS();});
+  pushTopFunc("cons",2,[this](){coder.CONS();});
   pushTopFunc("hd",1,[this](){coder.HEAD();});
   pushTopFunc("tl",1,[this](){coder.TAIL();});
   pushTopFunc("empty?",1,[this](){coder.EMPTYP();});
@@ -406,9 +406,8 @@ void Compiler::standardEnvironment(){
     if(args.size()<2)
       error("plus expect twe more arguments.");
     else{
-#define REDUCE(OP)                   \
-      compile(move(args[0]));        \
-      coder.OP();                               \
+#define REDUCE(OP)                              \
+      compile(move(args[0]));                   \
       for(int i=1;i<args.size();i++){           \
         coder.PUSH();                           \
         compile(move(args[i]));                 \
@@ -447,7 +446,6 @@ void Compiler::standardEnvironment(){
       coder.PUSH();
       coder.HEAD();
     }
-    coder.PUSH();
   };
   keywords["tl"]=[this](ExprPtrList args){
     if(args.size()!=1){
@@ -457,11 +455,10 @@ void Compiler::standardEnvironment(){
       coder.PUSH();
       coder.TAIL();
     }
-    coder.PUSH();
   };
-  pushVar(toplevel,"null",[this](){
-    coder.UNIT();
-  });
+  pushVar(toplevel,"null",[this](){coder.UNIT();});
+  pushVar(toplevel,"#t",[this](){coder.CNST(vm::Value(true));});
+  pushVar(toplevel,"#f",[this](){coder.CNST(vm::Value(false));});
   locals.push_back(toplevel);
   closures.push_back(Closure());
 }

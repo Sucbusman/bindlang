@@ -61,6 +61,7 @@ class Coder{
   void RET();
   void HALT();
   void CALL();
+  void COPY();
   void JNE(uint32_t);
   void JMP(uint32_t);
   void SETL(uint32_t);
