@@ -1,0 +1,19 @@
+9227465
+ Performance counter stats for './bindlang test/fib.bd':
+
+         11,350.30 msec task-clock:u              #    1.000 CPUs utilized
+                 0      context-switches:u        #    0.000 K/sec
+                 0      cpu-migrations:u          #    0.000 K/sec
+               133      page-faults:u             #    0.012 K/sec
+    28,852,486,266      cycles:u                  #    2.542 GHz
+       130,851,930      stalled-cycles-frontend:u #    0.45% frontend cycles idle
+     5,456,643,411      stalled-cycles-backend:u  #   18.91% backend cycles idle
+    60,194,716,409      instructions:u            #    2.09  insn per cycle
+                                                  #    0.09  stalled cycles per insn
+     9,366,539,207      branches:u                #  825.224 M/sec
+       113,713,397      branch-misses:u           #    1.21% of all branches
+
+      11.353425187 seconds time elapsed
+
+      11.333689000 seconds user
+       0.000000000 seconds sys

@@ -2,6 +2,5 @@ obj/*
 build/*
 test/*.bdc
 bindlang
-*.log
 src/.ccls-cache/
 *#
