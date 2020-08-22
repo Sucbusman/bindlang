@@ -1,6 +1,8 @@
 obj/*
 build/*
+release/*
 test/*.bdc
 bindlang
 src/.ccls-cache/
 *#
+*.note

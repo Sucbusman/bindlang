@@ -9,16 +9,18 @@
 #include "vm/type.h"
 
 namespace bindlang { namespace vm{
-typedef enum{
-  PRINT
-}SYSCALL_TABLE;
+enum class SYSCALL_TYPE{
+  PRINT,
+  INSPECT,
+  GC
+};
 
 struct callFrame{
-  callFrame(uint8_t* ip,size_t bp,size_t sp,vector<Value>* vsp)
-    :ip(ip),bp(bp),sp(sp),vsp(vsp){}
+  // is used for recording the past calls information
+  callFrame(uint8_t* ip,size_t bp,vector<Value>* vsp)
+    :ip(ip),bp(bp),vsp(vsp){}
   uint8_t* ip;
   size_t   bp;
-  size_t   sp;
   vector<Value>* vsp;
 };
 
@@ -35,25 +37,20 @@ class VM{
 
   void reset();
   bool run();
-  uint8_t* disas_inst(uint8_t*);
-  void dumpConstant();
+  bool debugp = false;
   void disassemble();
-  
-  // helper
-  template<class... Args>
-  bool error(Args... args);
-  inline bool hasError();
-  void dumpStack();
-  void dumpRegs();
-
+ private:
   // vm
   vector<std::uint8_t> rom;
   vector<Value>        constants;
+
   
   // value stack
   vector<Value>        values;
-  void  push(Value val);
-  Value pop();
+  inline void  push(Value const& val);
+  inline Value pop();
+  vector<callFrame> frames;// last call frames
+  uint32_t entry=0;// determin constant region
 
   // register
   uint8_t* ip;
@@ -61,28 +58,34 @@ class VM{
   size_t   bp = 0;
   size_t   sp = 0;
   vector<Value>* vsp = nullptr;
-  bool     debug = false;
-
-  // last call frames
-  vector<callFrame> frames;
 
   // syscall
-  using  thunk = bool(*)(VM&);
-  vector<thunk> syscalls;
+  vector<std::function<bool()>> syscalls;
   void standardSyscalls();
-  unordered_map<string,std::function<void(void)> > keywords;
 
-  // env
-  Env toplevel;
-  stack<Env> envs;
-  void standardEnv();
+  // gc
+  size_t  GC_THRESHOLD = 0xffffffff;//16 MB
+  void prepareGc();
+  void ifGc();
+  void recycleMem();
+  void mark();
+  void mark(Obj*);
+  void mark(Value &);
+  void sweep();
 
-  //helper
+  // debug
+  uint8_t* disas_inst(uint8_t*);
+  void dumpConstant();
+  void dumpStack();
+  void dumpRegs();
+  
+  // error
   int error_num=0;
+  template<typename... Args>
+  bool error(Args... args);
+  inline bool hasError();
 };
 
-bool sys_print(VM& vm);
-bool sys_inspect(VM& vm);
 
 } }
 

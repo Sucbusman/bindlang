@@ -48,7 +48,7 @@ void Coder::parseBytecode(vector<uint8_t>& buffer){
         break;
       }
       case VAL_Procedure:{
-        uint32_t arity = READ(uint32_t);
+        uint8_t arity = READ(uint8_t);
         size_t offset = READ(size_t);
         PUSHV(Value(make_obj("anony",arity,offset)));
         break;
@@ -98,9 +98,9 @@ vector<uint8_t> Coder::genBytecode(){
       }
       case VAL_Procedure:{
         auto proc = AS_PROCEDURE(val);
-        content.write((char*)&proc->arity,4);
+        content.write((char*)&proc->arity,1);
         content.write((char*)&proc->offset,sizeof(size_t));
-        len+=4+sizeof(size_t);
+        len+=1+sizeof(size_t);
         break;
       }
       default:
@@ -175,41 +175,32 @@ size_t Coder::addConst(Value v){
 }
 
 // bytecodes
-void Coder::modify(size_t pc,uint32_t opr){
-  uint8_t *bytes = PtrCast<uint8_t>(&opr);
-  codes[pc+0] = bytes[0];
-  codes[pc+1] = bytes[1];
-  codes[pc+2] = bytes[2];
-  codes[pc+3] = bytes[3];
+template <typename T>
+void Coder::modify(size_t pc,T bs){
+  uint8_t *bytes = PtrCast<uint8_t>(&bs);
+  int nbytes = sizeof(T);
+  for(int i=0;i<nbytes;i++){
+    codes[pc+i] = bytes[i];
+  }
 }
 
-void Coder::push5(OpCode opc,uint32_t opr){
-  codes.push_back((uint8_t)opc);
-  uint8_t *bytes = PtrCast<uint8_t>(&opr);
-  codes.push_back(bytes[0]);
-  codes.push_back(bytes[1]);
-  codes.push_back(bytes[2]);
-  codes.push_back(bytes[3]);
+void Coder::modify16(size_t pc,uint16_t bs){
+  modify(pc,(uint16_t)bs);
 }
 
-void Coder::push4(uint32_t word){
-  uint8_t *bytes = PtrCast<uint8_t>(&word);
-  codes.push_back(bytes[0]);
-  codes.push_back(bytes[1]);
-  codes.push_back(bytes[2]);
-  codes.push_back(bytes[3]); 
-}
-
-void Coder::push9(OpCode opc,uint64_t opr){
-  codes.push_back((uint8_t)opc);
-  uint8_t *bytes = PtrCast<uint8_t>(&opr);
-  for(auto i=0;i<8;i++){
+template <typename T>
+void Coder::pushb(T bs){
+  uint8_t *bytes = PtrCast<uint8_t>(&bs);
+  int nbytes = sizeof(T);
+  for(int i=0;i<nbytes;i++){
     codes.push_back(bytes[i]);
   }
 }
 
-inline void Coder::push1(OpCode opc){
+template <typename T>
+void Coder::pushi(OpCode opc,T opr){
   codes.push_back((uint8_t)opc);
+  pushb(opr);
 }
 
 size_t Coder::tellp(){
@@ -218,40 +209,49 @@ size_t Coder::tellp(){
 
 size_t Coder::CNST(Value v){
   auto idx = (uint32_t)(constants.size());
-  push5(OpCode::CNST,idx);
+  pushi(OpCode::CNST,idx);
   constants.push_back(v);
   return idx;
 }
 
 size_t Coder::CNSH(Value v){
   auto idx = constants.size();
-  push9(OpCode::CNST,idx);
+  pushi(OpCode::CNST,idx);
   constants.push_back(v);
   return idx;
 }
 
 size_t Coder::CAPTURE(vector<CapturedValue>& value_infos){
-  push1(OpCode::CAPTURE);
+  pushb((uint8_t)OpCode::CAPTURE);
   for(auto & info:value_infos){
-    push4(*reinterpret_cast<uint32_t*>(&info));
+    pushb(*reinterpret_cast<uint8_t*>(&info));
   }
-  push4(0u);//indicate captured value encode end
+  pushb((uint8_t)0);//indicate captured value encode end
   return tellp();
 }
 
-#define INST1(F) \
-  void Coder::F(){                              \
-    push1(OpCode::F);                        \
+#define INST1(F)                                 \
+  void Coder::F(){                               \
+    pushb((uint8_t)OpCode::F);                   \
   }
-#define INST5(F)\
-  void Coder::F(uint32_t idx){                              \
-    push5(OpCode::F,idx);                              \
+#define INST2(F)                                 \
+  void Coder::F(uint8_t n){                      \
+    pushi(OpCode::F,n);                          \
   }
-#define INST9(F) \
-  void Coder::F(uint64_t n){ \
-    push9(OpCode::F,n);   \
+#define INST3(F)                                 \
+  void Coder::F(uint16_t n){                     \
+    pushi(OpCode::F,n);                          \
+  }
+#define INST5(F)                                 \
+  void Coder::F(uint32_t idx){                   \
+    pushi(OpCode::F,idx);                        \
+  }
+#define INST9(F)                                 \
+  void Coder::F(uint64_t n){                     \
+    pushi(OpCode::F,n);                          \
   }
 
+INST1(START);
 INST1(HALT);
 INST1(RET);
 INST1(PUSH);
@@ -273,13 +273,13 @@ INST1(TAIL);
 INST1(EMPTYP);
 INST1(CALL);
 INST1(COPY);
-INST5(JNE);
-INST5(SYSCALL);
-INST5(JMP);
-INST5(GETC);
-INST5(SETC);
-INST5(GETL);
-INST5(SETL);
+INST2(SYSCALL);
+INST2(GETC);
+INST2(SETC);
+INST3(JNE);
+INST3(JMP);
+INST3(GETL);
+INST3(SETL);
 INST5(CNST);
 INST9(IMM);
 INST9(CNSH);

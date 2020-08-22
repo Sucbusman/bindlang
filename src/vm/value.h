@@ -8,6 +8,7 @@
 #include "util/utils.h"
 
 #define VM_INSTALL_ALL_INST(f) \
+  f(START)                                            \
   f(GETL) f(GETG) f(SETC) f(GETC) f(SETL) f(SETG)     \
   f(CNST) f(CNSH) f(IMM)                              \
   f(PUSH) f(POP)                                      \
@@ -21,63 +22,58 @@
   
 #define VM_EXPAND_LIST(i) i,
 #define VM_EXPAND_LIST_STR(i) #i,
-
+#define VM_EXPAND_LABEL_LIST(i) &&VML_##i,
+#define VM_LABEL(i) VML_##i:
 #define VM_INSTALL_ALL_VAL(f)\
   f(NIL) f(BOOL) f(NUMBER) f(String) f(Procedure) f(List)
 #define VM_EXPAND_VAL(i) VAL_##i,
+#define VM_INSTALL_ALL_OBJ(f) \
+  f(String) f(Procedure) f(List)
 
 namespace bindlang  { namespace vm{
+
+extern const char* opcTable[];
+extern const char* valTable[];
+extern const char* objTable[];
 
 enum class OpCode : uint8_t{
   VM_INSTALL_ALL_INST(VM_EXPAND_LIST)
 };
 
-extern const char* opcTable[];
-extern const char* valTable[];
-
 enum class objType : uint8_t {
-  String,
-  Procedure,
-  List
+  VM_INSTALL_ALL_OBJ(VM_EXPAND_LIST)
 };
 
 struct Obj{
   uint8_t type:6;
   uint8_t flag:2;
   struct Obj *next;
-  Obj(uint8_t type,Obj* next):type(type),next(next){}
-  virtual Obj* clone(Obj** pchain)=0;
+  Obj(uint8_t type,Obj* next):type(type),flag(0b00),next(next){}
+  virtual Obj* clone()=0;
+  virtual ~Obj();
 };
 
 struct ObjString:Obj{
   ObjString(string s,Obj *next)
     :Obj((uint8_t)objType::String,next),s(s){}
   string s;
-  Obj* clone(Obj** pchain) override {
-    auto o = new ObjString(s,*pchain);
-    *pchain = o;
-    return o;
-  }
+  Obj* clone() override;
 };
 
 struct Value;
 struct ObjProcedure:Obj{
-  ObjProcedure(string name,int arity,
+  ObjProcedure(string name,uint8_t arity,
                uint32_t offset,Obj *next)
     :Obj((uint8_t)objType::Procedure,next),
      name(name),arity(arity),offset(offset){}
-  Obj* clone(Obj** pchain) override {
-    auto o = new ObjProcedure(name,arity,offset,*pchain);
-    o->captureds = captureds;
-    *pchain = o;
-    return o;
-  }
+  Obj* clone() override;
   string name;
-  int arity;
+  uint8_t arity;
   size_t offset;//offset to the procedure start in rom
   vector<Value> captureds;
 };
 
+#define isObj(v) (v.type>VAL_NUMBER)
 #define AS_OBJ(v) (v.as.obj)
 #define AS_CSTRING(v) (&((ObjString*)(AS_OBJ(v)))->s)
 #define AS_STRING(v) ((ObjString*)AS_OBJ(v)s)
@@ -116,42 +112,24 @@ struct ObjList:Obj{
     :Obj((uint8_t)objType::List,next),head(head),tail(tail){}
   Value head;
   ObjList* tail;
-  Obj* clone(Obj** pchain) override {
-    auto o = new ObjList(head,tail,*pchain);
-    *pchain = o;
-    return o;
-  }
+  Obj* clone() override;
 };
 
-
+// value helper
 void printVal(Value const& val);
-void printList(Value const&,std::function<void(Value const&)> f);
 void inspectVal(Value const& val);
 bool truthy(Value const& val);
 bool valueEqual(Value const&,Value const&);
 
-class Env{
- public:
-  Env(){}
-  Env(EnvPtr outer):outer(outer){}
-  Env(Env const& e){
-    outer = e.outer;
-    map  = unordered_map<string,Value>(e.map);
-  }
-  Value*   get(string);
-  void     set(string,const Value&);
-  unordered_map<std::string,Value> map;
-  EnvPtr outer;
-};
-
-// gc
+// object helper
 extern size_t bytesAllocated;
 extern Obj* objchain;
-void ifgc();
-void recycleMem();
+void printObj(Obj*);
+void inspectObj(Obj*);
+void printList(ObjList*,std::function<void(Value const&)> f);
 ObjString* make_obj(string&);
 ObjString* make_obj(const char*);
-ObjProcedure* make_obj(string const&name,int arity,size_t offset);
+ObjProcedure* make_obj(string const&,uint8_t,size_t);
 ObjList* make_obj(Value const& head,ObjList* tail);
 Value copy_val(Value const& v);
 

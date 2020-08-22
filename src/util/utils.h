@@ -30,4 +30,10 @@ vector<B> mapvec(vector<A> as,std::function<B(A&)> f){
   return bs;
 }
 
+template <typename>
+struct argType;
+template <typename R, typename A>
+struct argType<R(A)>
+ { using type = A; };
+
 #endif

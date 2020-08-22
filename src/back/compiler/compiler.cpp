@@ -1,3 +1,4 @@
+#include <bits/stdint-uintn.h>
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
@@ -16,12 +17,12 @@ void Compiler::error(Arg... args){
 
 bool Compiler::hasError(){return error_num>0;}
 
-uint32_t Compiler::Local::set(string const& name){
+uint16_t Compiler::Local::set(string const& name){
   map[name] = counter;
   return counter++;
 }
 
-uint32_t Compiler::Local::get(string const& name){
+uint16_t Compiler::Local::get(string const& name){
   return map[name];
 }
 
@@ -30,15 +31,15 @@ bool Compiler::Local::has(string const& name){
   return it!=map.end();
 }
 
-uint32_t Compiler::Closure::set(string const& name,
-                           bool iflocal,uint32_t idx){
+uint8_t Compiler::Closure::set(string const& name,
+                           bool iflocal,uint8_t idx){
   auto count = values.size();
   map[name] = count;
   values.push_back(vm::Coder::CapturedValue{idx,iflocal,1});
   return count;
 }
 
-uint32_t Compiler::Closure::get(string const&name){
+uint8_t Compiler::Closure::get(string const&name){
   return map[name];
 }
 
@@ -64,6 +65,7 @@ void Compiler::compileFile2mem(string const& fn){
     auto expr = parser.parseNext();
     if(not expr or expr->type<0)
       break;
+    rootp = true;
     compile(move(expr));
   }
   if(not hasError()){
@@ -84,15 +86,19 @@ void Compiler::writeBinary(string const& fn){
   coder.writeBinary(fn.c_str());
 }
 
+inline void nop(){}
 void Compiler::compile(ExprPtr expr){
   if(hasError()) return;
   switch(expr->type){
-    case ATOM:     return compileAtom(move(expr));
-    case LIST:     return compileList(move(expr));
-    case ID:       return compileId(move(expr));
+    // pure
+    case ATOM:     return rootp?nop():compileAtom(move(expr));
+    case LIST:     return rootp?nop():compileList(move(expr));
+    case ID:       return rootp?nop():compileId(move(expr));
+    case FUNC:     return rootp?nop():compileFunc(expr->clone());
+    // site effect
     case DEFINE:   return compileDefine(move(expr));
-    case FUNC:     return compileFunc(expr->clone());
     case CALL:     return compileCall(move(expr));
+    // helper
     case EOF:      error_num++;coder.HALT();
     default:
       error("Unreachable");
@@ -126,9 +132,7 @@ void Compiler::compileList(ExprPtr expr){
   auto lst = move(rcast(ExprList*,expr)->container);
   coder.UNIT();
   for(auto it=lst.rbegin();it!=lst.rend();it++){
-    coder.PUSH();
     compile(move(*it));
-    coder.PUSH();
     coder.RCONS();
   }
 }
@@ -147,7 +151,7 @@ void Compiler::resolveId(ExprPtr expr){
         auto lidx = it->get(name);
         auto j = closures.size()-distance;
       //cout<<"capture "<<name<<" at "<<distance<<' '<<lidx<<endl;
-        uint32_t vidx;
+        uint8_t vidx;
         if(closures[j].has(name)){
           vidx = closures[j].get(name);
         }else{
@@ -199,6 +203,7 @@ void Compiler::resolveDefine(ExprPtr expr){
 }
 
 void Compiler::compileDefine(ExprPtr expr){
+  if(rootp){rootp = false;}
   auto def = rcast(ExprDefine*,expr);
   auto name = def->id.literal;
   auto it = keywords.find(name);
@@ -206,9 +211,7 @@ void Compiler::compileDefine(ExprPtr expr){
     error("can not define ",name," this name is keyword");
   }
   curScope().set(name);
-  //cout<<name<<" scope index:"<<curScope().get(name)<<endl;
   compile(move(def->expr));
-  coder.PUSH();
 }
 
 inline Compiler::Local& Compiler::curScope(){
@@ -252,14 +255,12 @@ void Compiler::compileFunc(ExprPtr expr){
                       return tok.literal;}));
   auto locals_backup = locals;
   resolve(func->body->clone());
-  locals = locals_backup;
-  emitFunc("anony",(uint32_t)params.size(),
+  locals = locals_backup;//restore locals
+  emitFunc("anony",(uint8_t)params.size(),
            [this,func](){
              compile(move(func->body));
            });
-  coder.PUSH();//for capture itself in recursion function
   coder.CAPTURE(closures.back().values);
-  coder.POP();
   endScope();
 }
 
@@ -280,6 +281,8 @@ void Compiler::resolveCall(ExprPtr expr){
 }
 
 void Compiler::compileCall(ExprPtr expr){
+  auto return_valuep = not rootp;
+  if(rootp){rootp = false;}
   auto call = rcast(ExprCall*,expr);
   auto args = move(call->args);
   if (call->callee->type == ID){
@@ -293,21 +296,23 @@ void Compiler::compileCall(ExprPtr expr){
 
   for(auto & arg:args){
     compile(move(arg));
-    coder.PUSH();
   }
   compile(move(call->callee));
-  coder.CALL();   
+  coder.CALL();
+  if(not return_valuep){
+    coder.POP();
+  }
 }
 
 uint32_t Compiler::emitFunc(string const& name,
-                            int arity,
+                            uint8_t arity,
                             std::function<void(void)> f){
   auto pos_jmp = coder.tellp();
   coder.JMP(0);//place holder,jump out of function code
   auto pos_func = coder.tellp();
   f();
   coder.RET();//normal function always return...
-  coder.modify(pos_jmp+1,coder.tellp()-pos_jmp);//patch
+  coder.modify16(pos_jmp+1,coder.tellp()-pos_jmp);//patch
   coder.CNST(vm::Value(vm::make_obj(name,arity,pos_func)));
   coder.COPY();
   return coder.tellp();
@@ -315,17 +320,16 @@ uint32_t Compiler::emitFunc(string const& name,
 
 void Compiler::pushFunc(Local & scope,
                             string const& name,
-                            int arity,
+                            uint8_t arity,
                             std::function<void(void)> f){
 
   emitFunc(name,arity,f);
-  coder.PUSH();
   scope.set(name);
   return;
 }
 
 inline void Compiler::pushTopFunc(string const& name,
-                           int arity,
+                           uint8_t arity,
                            std::function<void(void)> f){
   pushFunc(toplevel,name,arity,f);
 }
@@ -333,17 +337,13 @@ inline void Compiler::pushTopFunc(string const& name,
 void Compiler::pushVar(Local & scope,string const& name,
                        std::function<void(void)> f){
   f();
-  coder.PUSH();
   scope.set(name);
 }
 
 void Compiler::standardEnvironment(){
   // push predefine function
   // print
-  pushFunc(toplevel,"print",1,[this](){
-    coder.GETL(0);
-    coder.SYSCALL(0);
-  });
+  pushTopFunc("print",1,[this](){coder.SYSCALL(0);});
   pushTopFunc("+",2,[this](){coder.ADD();});
   pushTopFunc("-",2,[this](){coder.MINUS();});
   pushTopFunc("*",2,[this](){coder.MULT();});
@@ -355,6 +355,7 @@ void Compiler::standardEnvironment(){
   pushTopFunc("hd",1,[this](){coder.HEAD();});
   pushTopFunc("tl",1,[this](){coder.TAIL();});
   pushTopFunc("empty?",1,[this](){coder.EMPTYP();});
+  pushTopFunc("gc",0,[this](){coder.SYSCALL(2);});
   keywords["if"] = [this](ExprPtrList args){
     if(args.size()!=2 and args.size()!=3)
       error("Wrong argument number ",args.size(),
@@ -367,14 +368,14 @@ void Compiler::standardEnvironment(){
       auto then_end = coder.tellp();
       coder.JMP(0);//place holder
       auto else_start = coder.tellp();
-      coder.modify(test_end+1,else_start-test_end);
+      coder.modify16(test_end+1,else_start-test_end);
       if(args.size()>2){
         compile(move(args[2]));
       }else{
         coder.FALSE();
       }
       auto else_end = coder.tellp();
-      coder.modify(then_end+1,else_end-then_end);
+      coder.modify16(then_end+1,else_end-then_end);
     }
   };
 
@@ -398,7 +399,7 @@ void Compiler::standardEnvironment(){
       }
       coder.JMP(test_start-coder.tellp());
       auto body_end = coder.tellp();
-      coder.modify(body_start+1,body_end-body_start);
+      coder.modify16(body_start+1,body_end-body_start);
     }
   };
 
@@ -409,9 +410,7 @@ void Compiler::standardEnvironment(){
 #define REDUCE(OP)                              \
       compile(move(args[0]));                   \
       for(int i=1;i<args.size();i++){           \
-        coder.PUSH();                           \
         compile(move(args[i]));                 \
-        coder.PUSH();                           \
         coder.OP();                             \
       }
       REDUCE(ADD);
@@ -443,7 +442,6 @@ void Compiler::standardEnvironment(){
       error("hd expect one argument.");
     }else{
       compile(move(args[0]));
-      coder.PUSH();
       coder.HEAD();
     }
   };
@@ -452,7 +450,6 @@ void Compiler::standardEnvironment(){
       error("hd expect one argument.");
     }else{
       compile(move(args[0]));
-      coder.PUSH();
       coder.TAIL();
     }
   };
@@ -461,6 +458,7 @@ void Compiler::standardEnvironment(){
   pushVar(toplevel,"#f",[this](){coder.CNST(vm::Value(false));});
   locals.push_back(toplevel);
   closures.push_back(Closure());
+  coder.START();
 }
 
 }

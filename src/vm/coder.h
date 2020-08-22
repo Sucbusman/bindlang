@@ -11,11 +11,16 @@ class Coder{
   vector<uint8_t> codes;
   vector<Value>   constants;
 
-  void modify(size_t pc,uint32_t val);
-  void push9(OpCode,uint64_t);
-  void push5(OpCode,uint32_t);
-  void push4(uint32_t);
-  inline void push1(OpCode);
+  template <typename T>
+  void modify(size_t pc,T val);
+  void modify16(size_t pc,uint16_t);
+
+  template <typename T>
+  void pushb(T opr);
+
+  template <typename T>
+  void pushi(OpCode opc,T opr);
+  
   vector<uint8_t> genBytecode();
   void parseBytecode(vector<uint8_t>& buffer);
 
@@ -27,11 +32,11 @@ class Coder{
   size_t addConst(Value);
 
   struct CapturedValue{
-    uint32_t idx:30;
+    uint8_t idx:6;
     //0:find in outer local env,1:find in outer captured values
-    uint32_t iflocal:1;
+    uint8_t iflocal:1;
     //0:end 1:use
-    uint32_t flag:1;
+    uint8_t flag:1;
   };
 
   // bytecodes
@@ -41,6 +46,7 @@ class Coder{
   void CNST(uint32_t);
   void CNSH(uint64_t);
   void IMM(uint64_t);
+  void START();
   void PUSH();
   void POP();
   void ADD();
@@ -62,13 +68,13 @@ class Coder{
   void HALT();
   void CALL();
   void COPY();
-  void JNE(uint32_t);
-  void JMP(uint32_t);
-  void SETL(uint32_t);
-  void GETL(uint32_t);
-  void SETC(uint32_t);
-  void GETC(uint32_t);
-  void SYSCALL(uint32_t);
+  void JNE(uint16_t);
+  void JMP(uint16_t);
+  void SETL(uint16_t);
+  void GETL(uint16_t);
+  void SETC(uint8_t);
+  void GETC(uint8_t);
+  void SYSCALL(uint8_t);
 private:
   uint32_t header = 0xdeadbeef;
 };

@@ -46,9 +46,9 @@ void testInterpreter(Parser& parser,Interpreter& interp){
 }
 
 enum class Mode{ 
-                tok,
-                ast,
-                val
+     tok,
+     ast,
+     val
 };
 
 bool preprocess(const char *buf,Mode & m){
@@ -117,12 +117,13 @@ void compileFile(string const& fn){
   compiler.compileFile(fn);
 }
 
-void compileAndRun(string const& fn){
+void compileAndRun(string const& fn,bool debugp){
   auto compiler = Compiler();
   compiler.compileFile2mem(fn);
   if(not compiler.hasError()){
     auto vm = vm::VM(move(compiler.coder.codes),
                    move(compiler.coder.constants));
+    vm.debugp = debugp;
     vm.run();
   }
 }
@@ -157,7 +158,7 @@ void runBytecode(const char* path,bool debugp){
   auto coder = vm::Coder();
   coder.readBinary(path);
   auto vm = vm::VM(move(coder.codes),move(coder.constants));
-  vm.debug = debugp;
+  vm.debugp = debugp;
   vm.run();
 }
 
@@ -171,7 +172,12 @@ int main(int argc,char *argv[]){
   if(argc<2){
     repl();
   }else if(argc<3){
-    compileAndRun(string(argv[1]));
+    auto fn = string(argv[1]);
+    if (fn.size()>4 and fn[fn.size()-1] == 'c'){
+      runBytecode(argv[1],false);
+    }else {
+      compileAndRun(fn,false);
+    }
   }else if(argc<4){
     auto action = string(argv[1]);
 #define when(S) if(action == (S))
@@ -188,7 +194,12 @@ int main(int argc,char *argv[]){
     }else when("interp"){
       interpFile(argv[2]);
     }else when("debug"){
-      runBytecode(argv[2], true);
+      auto fn = string(argv[2]);
+      if(fn.size()>4 and fn[fn.size()-1] == 'c'){
+        runBytecode(argv[2], true);
+      }else{
+        compileAndRun(fn, true);
+      }
     }else{
       showhelp();
       exit(1);

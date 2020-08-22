@@ -12,6 +12,10 @@ const char* valTable[]={
   VM_INSTALL_ALL_VAL(VM_EXPAND_LIST_STR)
 };
 
+const char* objTable[]={
+  VM_INSTALL_ALL_OBJ(VM_EXPAND_LIST_STR)
+};
+
 bool truthy(const Value &val){
   switch(val.type){
     case VAL_NIL:return false;
@@ -36,44 +40,11 @@ void printVal(Value const& val){
     case VAL_NIL:    cout<<"nil";break;
     case VAL_BOOL:   cout<<(val.as.boolean?"#t":"#f");break;
     case VAL_NUMBER: cout<<dec<<val.as.number;break;
-    case VAL_String: cout<<*AS_CSTRING(val);break;
-    case VAL_Procedure:{
-      auto proc = AS_PROCEDURE(val);
-      cout<<"<procedure> "<<proc->name<<' '
-          <<'('<<proc->arity<<')'
-          <<" 0x"<<std::hex<<proc->offset;
-      break;
-    }
-    case VAL_List:
-      printList(val,printVal);
-      break;
-    default:
-      cerr<<"Unreachable!"<<endl;
-      break;
+    default:         printObj(val.as.obj);break;
   }
 }
 
-void printList(Value const& val,
-               std::function<void(Value const&)> f){
-  cout<<"[";
-  bool first = true;
-  ObjList* o = AS_LIST(val);
-  while(o){
-    if(first){
-      if(o->tail){
-        first = false;
-        f(o->head);
-      }
-    }else{
-      if(o->tail){//omit last ObjList(bool,nullptr)
-        cout<<' ';
-        f(o->head);
-      }
-    }
-    o = o->tail;
-  }
-  cout<<']';
-}
+
 
 void inspectVal(Value const& val){
   cout<<BLUECODE<<left<<setw(10)<<valTable[val.type]<<DEFAULT
@@ -82,34 +53,27 @@ void inspectVal(Value const& val){
     case VAL_NIL:    cout<<"nil";break;
     case VAL_BOOL:   cout<<(val.as.boolean?"#t":"#f");break;
     case VAL_NUMBER: cout<<val.as.number;break;
-    case VAL_String: cout<<*AS_CSTRING(val);break;
-    case VAL_Procedure:{
-      auto proc = AS_PROCEDURE(val);
-      cout<<proc->name<<'('<<proc->arity<<')'<<" 0x"<<std::hex<<proc->offset;
+    default:         inspectObj(val.as.obj);break;
+  }
+}
+
+Value copy_val(Value const& v){
+  auto val = Value();
+  val.type = v.type;
+  switch(v.type){
+    case VAL_BOOL:
+    case VAL_NIL:
+    case VAL_NUMBER:
+      val.as = v.as;
       break;
-    }
     case VAL_List:
-      printList(val,inspectVal);
-      break;
-    default:
-      break;
+    case VAL_Procedure:
+    case VAL_String:{
+      auto o =v.as.obj;
+      val.as.obj = o->clone();
+    }
   }
-}
-
-// environment
-Value* Env::get(string s){
-  auto it = map.find(s);
-  if(it != map.end()){
-    return &it->second;
-  }else if(outer){
-    return outer->get(s);
-  }else{
-    return nullptr;
-  }
-}
-
-void Env::set(string s,const Value& val){
-  map[s] = val;
+  return val;
 }
 
 }

@@ -18,16 +18,16 @@ class Compiler{
   struct Local{
     uint32_t counter=0;
     unordered_map<string,uint32_t> map;
-    uint32_t set(string const&);
-    uint32_t get(string const&);
+    uint16_t set(string const&);
+    uint16_t get(string const&);
     bool has(string const&);
   };
 
   struct Closure{
     unordered_map<string,size_t> map;
     vector<vm::Coder::CapturedValue> values;
-    uint32_t set(string const&,bool iflocal,uint32_t idx);
-    uint32_t get(string const&);
+    uint8_t set(string const&,bool iflocal,uint8_t idx);
+    uint8_t get(string const&);
     bool has(string const&);
     void clear();
   };
@@ -53,12 +53,12 @@ class Compiler{
   void compileFunc(ExprPtr);
   void compileCall(ExprPtr);
 
-  uint32_t emitFunc(string const&, int,
+  uint32_t emitFunc(string const&,uint8_t,
                     std::function<void(void)> f);
-  void pushFunc(Local&, string const&, int,
+  void pushFunc(Local&, string const&, uint8_t,
                 std::function<void(void)> f);
 
-  inline void pushTopFunc(string const&,int,
+  inline void pushTopFunc(string const&,uint8_t,
                           std::function<void(void)> f);
 
   void pushVar(Local&,string const&,
@@ -68,11 +68,14 @@ class Compiler{
   template <typename... Arg>
   void error(Arg... args);
 
+  //if compiling a root expression
+  //for unneeded expression elimition
+  bool rootp = true;
   Local toplevel;
   vector<Local> locals;
   vector<Closure> closures;
 
-  unordered_map<string,uint32_t> syscallTable;
+  //unordered_map<string,uint8_t> syscallTable;
   unordered_map<string,std::function<void(ExprPtrList)>> keywords;
   int error_num = 0;
 };

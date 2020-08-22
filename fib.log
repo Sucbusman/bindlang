@@ -17,3 +17,67 @@
 
       11.333689000 seconds user
        0.000000000 seconds sys
+
+#aflter remove debug check
+9227465
+ Performance counter stats for './bindlang test/fib.bd':
+
+          6,472.74 msec task-clock:u              #    1.000 CPUs utilized
+                 0      context-switches:u        #    0.000 K/sec
+                 0      cpu-migrations:u          #    0.000 K/sec
+               130      page-faults:u             #    0.020 K/sec
+    25,766,199,920      cycles:u                  #    3.981 GHz
+        95,732,230      stalled-cycles-frontend:u #    0.37% frontend cycles idle
+     8,497,751,127      stalled-cycles-backend:u  #   32.98% backend cycles idle
+    52,249,866,236      instructions:u            #    2.03  insn per cycle
+                                                  #    0.16  stalled cycles per insn
+     7,474,906,547      branches:u                # 1154.829 M/sec
+        77,437,963      branch-misses:u           #    1.04% of all branches
+
+       6.474404196 seconds time elapsed
+
+       6.466988000 seconds user
+       0.003322000 seconds sys
+
+# aflter redesign ISA,compress instruction size
+9227465
+ Performance counter stats for './bindlang test/fib.bd':
+
+          6,648.76 msec task-clock:u              #    1.000 CPUs utilized
+                 0      context-switches:u        #    0.000 K/sec
+                 0      cpu-migrations:u          #    0.000 K/sec
+               131      page-faults:u             #    0.020 K/sec
+    26,290,365,498      cycles:u                  #    3.954 GHz
+        86,681,943      stalled-cycles-frontend:u #    0.33% frontend cycles idle
+     9,440,504,987      stalled-cycles-backend:u  #   35.91% backend cycles idle
+    52,323,677,644      instructions:u            #    1.99  insn per cycle
+                                                  #    0.18  stalled cycles per insn
+     7,474,905,353      branches:u                # 1124.256 M/sec
+        77,192,975      branch-misses:u           #    1.03% of all branches
+
+       6.650115555 seconds time elapsed
+
+       6.644984000 seconds user
+       0.000000000 seconds sys
+
+# before turn reg_val to pure stack vm,fib.bdc size:520 bytes
+# change to stack vm without any register
+9227465
+ Performance counter stats for './bindlang test/fib.bd':
+
+          6,318.52 msec task-clock:u              #    1.000 CPUs utilized
+                 0      context-switches:u        #    0.000 K/sec
+                 0      cpu-migrations:u          #    0.000 K/sec
+               133      page-faults:u             #    0.021 K/sec
+    24,955,972,371      cycles:u                  #    3.950 GHz                      (83.34%)
+        76,814,435      stalled-cycles-frontend:u #    0.31% frontend cycles idle     (83.33%)
+     8,017,164,797      stalled-cycles-backend:u  #   32.13% backend cycles idle      (83.34%)
+    51,431,222,132      instructions:u            #    2.06  insn per cycle
+                                                  #    0.16  stalled cycles per insn  (83.33%)
+     7,243,731,333      branches:u                # 1146.429 M/sec                    (83.33%)
+        71,600,702      branch-misses:u           #    0.99% of all branches          (83.33%)
+
+       6.319303916 seconds time elapsed
+
+       6.304745000 seconds user
+       0.000000000 seconds sys
