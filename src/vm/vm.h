@@ -43,7 +43,6 @@ class VM{
   // vm
   vector<std::uint8_t> rom;
   vector<Value>        constants;
-
   
   // value stack
   vector<Value>        values;
@@ -54,7 +53,6 @@ class VM{
 
   // register
   uint8_t* ip;
-  Value    reg_val;
   size_t   bp = 0;
   size_t   sp = 0;
   vector<Value>* vsp = nullptr;
@@ -62,6 +60,11 @@ class VM{
   // syscall
   vector<std::function<bool()>> syscalls;
   void standardSyscalls();
+
+  // memorization
+  ObjProcedure*   cur_proc=nullptr;
+  size_t          cur_callid;
+  vector<Value>   cur_args;
 
   // gc
   size_t  GC_THRESHOLD = 0xffffffff;//16 MB

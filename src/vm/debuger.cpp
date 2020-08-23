@@ -9,7 +9,6 @@ void printIndent(int n){
 void VM::dumpRegs(){
   cout<<"  frame:"<<frames.size()
       <<" sp:0x"<<hex<<sp<<" bp:0x"<<hex<<bp<<" val_reg:";
-  printVal(reg_val);
   cout<<endl;
 }
 

@@ -27,6 +27,7 @@ class Coder{
   bool readBinary(const char* fname);
   bool writeBinary(const char* fname);
 
+  // helper
   size_t tellp();
   size_t tellcp();
   size_t addConst(Value);
@@ -38,7 +39,6 @@ class Coder{
     //0:end 1:use
     uint8_t flag:1;
   };
-
   // bytecodes
   size_t CNST(Value);
   size_t CNSH(Value);
@@ -47,6 +47,7 @@ class Coder{
   void CNSH(uint64_t);
   void IMM(uint64_t);
   void START();
+  void NOP();
   void PUSH();
   void POP();
   void ADD();
@@ -67,6 +68,7 @@ class Coder{
   void RET();
   void HALT();
   void CALL();
+  void TCALL();
   void COPY();
   void JNE(uint16_t);
   void JMP(uint16_t);
@@ -77,6 +79,7 @@ class Coder{
   void SYSCALL(uint8_t);
 private:
   uint32_t header = 0xdeadbeef;
+  OpCode last_op = OpCode::NOP;
 };
 
 

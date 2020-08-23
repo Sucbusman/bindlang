@@ -251,11 +251,27 @@ size_t Coder::CAPTURE(vector<CapturedValue>& value_infos){
     pushi(OpCode::F,n);                          \
   }
 
+void Coder::CALL(){
+  pushb((uint8_t)OpCode::CALL);
+  last_op = OpCode::CALL;
+}
+
+void Coder::RET(){
+  if(last_op == OpCode::CALL){
+    modify(codes.size()-1,(uint8_t)OpCode::TCALL);
+    pushb((uint8_t)OpCode::RET);
+  }else{
+    pushb((uint8_t)OpCode::RET);
+  }
+  last_op = OpCode::RET;
+}
+
 INST1(START);
+INST1(NOP);
 INST1(HALT);
-INST1(RET);
 INST1(PUSH);
 INST1(POP);
+INST1(TCALL);
 INST1(ADD);
 INST1(MINUS);
 INST1(MULT);
@@ -271,7 +287,6 @@ INST1(CONS);
 INST1(HEAD);
 INST1(TAIL);
 INST1(EMPTYP);
-INST1(CALL);
 INST1(COPY);
 INST2(SYSCALL);
 INST2(GETC);

@@ -1,23 +1,23 @@
-#ifndef __define__
-#define __define__
+#ifndef __VM_DEFINE_H_
+#define __VM_DEFINE_H_
 #include <memory>
 #include <unordered_map>
 #include <vector>
 #include <stdint.h>
-#include "vm/type.h"
 #include "util/utils.h"
+#include "vm/type.h"
 
 #define VM_INSTALL_ALL_INST(f) \
-  f(START)                                            \
-  f(GETL) f(GETG) f(SETC) f(GETC) f(SETL) f(SETG)     \
-  f(CNST) f(CNSH) f(IMM)                              \
-  f(PUSH) f(POP)                                      \
-  f(CAPTURE)  f(CALL) f(TCALL) f(RET)                 \
-  f(JMP)  f(JNE)                                      \
-  f(ADD)  f(MINUS)   f(MULT) f(DIVIDE)                \
-  f(EQ)   f(GT)      f(LT)                            \
-  f(TRUE) f(FALSE)                                    \
-  f(UNIT) f(RCONS) f(CONS) f(HEAD) f(TAIL) f(EMPTYP)  \
+  f(START) f(NOP)                                       \
+  f(GETL) f(GETG) f(SETC) f(GETC) f(SETL) f(SETG)       \
+  f(CNST) f(CNSH) f(IMM)                                \
+  f(PUSH) f(POP)                                        \
+  f(CAPTURE)  f(CALL) f(TCALL) f(MCALL) f(RET) f(MRET)  \
+  f(JMP)  f(JNE)                                        \
+  f(ADD)  f(MINUS)   f(MULT) f(DIVIDE)                  \
+  f(EQ)   f(GT)      f(LT)                              \
+  f(TRUE) f(FALSE)                                      \
+  f(UNIT) f(RCONS) f(CONS) f(HEAD) f(TAIL) f(EMPTYP)    \
   f(HALT) f(SYSCALL) f(COPY)
   
 #define VM_EXPAND_LIST(i) i,
@@ -60,19 +60,6 @@ struct ObjString:Obj{
   Obj* clone() override;
 };
 
-struct Value;
-struct ObjProcedure:Obj{
-  ObjProcedure(string name,uint8_t arity,
-               uint32_t offset,Obj *next)
-    :Obj((uint8_t)objType::Procedure,next),
-     name(name),arity(arity),offset(offset){}
-  Obj* clone() override;
-  string name;
-  uint8_t arity;
-  size_t offset;//offset to the procedure start in rom
-  vector<Value> captureds;
-};
-
 #define isObj(v) (v.type>VAL_NUMBER)
 #define AS_OBJ(v) (v.as.obj)
 #define AS_CSTRING(v) (&((ObjString*)(AS_OBJ(v)))->s)
@@ -84,6 +71,7 @@ typedef enum{
   VM_INSTALL_ALL_VAL(VM_EXPAND_VAL)
 }val_type;
 
+struct ObjProcedure;
 struct ObjList;
 struct Value{
   uint8_t type;
@@ -105,6 +93,44 @@ struct Value{
   OBJ2VAL(String);
   OBJ2VAL(Procedure);
   OBJ2VAL(List);
+  bool operator== (Value const& v) const;
+  size_t to_hash() const{
+    size_t ans = type;
+    switch(type){
+      case VAL_NIL: return ans;
+      case VAL_BOOL: return ans|((as.boolean & 1)<<8);
+      default:
+        return (ans<<(63)|(size_t)as.obj);
+    }
+  }
+};
+
+struct ObjProcedure:Obj{
+  ObjProcedure(string name,uint8_t arity,
+               uint32_t offset,uint8_t property,Obj *next)
+    :Obj((uint8_t)objType::Procedure,next),
+     name(name),arity(arity),offset(offset),property(property){}
+  Obj* clone() override;
+  string name;
+  uint8_t arity;
+  size_t offset;//offset to the procedure start in rom
+  vector<Value> captureds;
+  //            number,     result, args
+  CallCache cache;
+  uint8_t property;//....|side-effect
+#define hasSideEffect(f) ((f->property & 1)==1)
+  size_t hash_call(vector<Value> const& args){
+    #define hash_mult 0x1234
+    size_t n=0;
+    for(auto const& v:captureds){
+      n += v.to_hash()*hash_mult;
+    }
+    for(auto const& v:args){
+      n += v.to_hash()*hash_mult;
+    }
+    return n;
+    #undef hash_mult
+  }
 };
 
 struct ObjList:Obj{
@@ -129,6 +155,7 @@ void inspectObj(Obj*);
 void printList(ObjList*,std::function<void(Value const&)> f);
 ObjString* make_obj(string&);
 ObjString* make_obj(const char*);
+ObjProcedure* make_obj(string const&,uint8_t,size_t,uint8_t);
 ObjProcedure* make_obj(string const&,uint8_t,size_t);
 ObjList* make_obj(Value const& head,ObjList* tail);
 Value copy_val(Value const& v);

@@ -2,6 +2,7 @@
 #define __compiler__
 #include "front/parser.h"
 #include "vm/coder.h"
+#include <bits/stdint-uintn.h>
 #include <unordered_map>
 namespace bindlang{
 
@@ -53,12 +54,13 @@ class Compiler{
   void compileFunc(ExprPtr);
   void compileCall(ExprPtr);
 
-  uint32_t emitFunc(string const&,uint8_t,
+  uint32_t emitFunc(string const&,uint8_t,uint8_t,
                     std::function<void(void)> f);
-  void pushFunc(Local&, string const&, uint8_t,
+
+  void pushFunc(Local&, string const&, uint8_t,uint8_t,
                 std::function<void(void)> f);
 
-  inline void pushTopFunc(string const&,uint8_t,
+  inline void pushTopFunc(string const&,uint8_t,uint8_t,
                           std::function<void(void)> f);
 
   void pushVar(Local&,string const&,
@@ -71,6 +73,10 @@ class Compiler{
   //if compiling a root expression
   //for unneeded expression elimition
   bool rootp = true;
+  //for give function a name
+  bool define_funcp = false;
+  string last_name;
+
   Local toplevel;
   vector<Local> locals;
   vector<Closure> closures;

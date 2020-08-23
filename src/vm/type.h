@@ -1,5 +1,5 @@
-#ifndef __type__
-#define __type__
+#ifndef __VM_TYPE_H__
+#define __VM_TYPE_H__
 #include <iostream>
 #include <iomanip>
 #include <string>
@@ -9,13 +9,14 @@
 
 namespace bindlang::vm{
 
-class  Env;//declare ahead
 class  VM;
-using  EnvPtr = std::shared_ptr<Env>;
+struct Value;
 using  std::cout,std::endl,std::cerr,std::string;
 using  std::setw,std::hex;
 using  std::vector,std::unordered_map;
 using  std::move;
+using CachePair = std::pair<Value,vector<Value>>;
+using CallCache = unordered_map<size_t,CachePair>;
 
 template <typename T,typename U>
 T* PtrCast(U *ptr){

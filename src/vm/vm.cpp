@@ -1,8 +1,7 @@
-#include <bits/stdint-uintn.h>
-#include <iostream>
 #include "vm/value.h"
 #include "vm/vm.h"
 #include "vm/coder.h"
+#include <cstdio>
 
 namespace bindlang { namespace vm{
 
@@ -76,6 +75,7 @@ inline Value VM::pop(){
   return values[sp];
 }
 
+
 bool VM::run(){
 #define EAT(T) (*(T*)ip);ip+=sizeof(T)
 #define PEEK(T) (*(T*)ip)
@@ -104,6 +104,7 @@ bool VM::run(){
         prepareGc();
         break;
       }
+      WHEN(NOP):break;
       WHEN(SETG):{
         dword = EAT(uint32_t);
         values[dword]=pop();
@@ -193,7 +194,7 @@ bool VM::run(){
       WHEN(EQ):{
         auto r = pop();
         auto l = pop();
-        push(Value(valueEqual(r, l)));
+        push(Value(r == l));
         break;
       }
       WHEN(UNIT):
@@ -245,7 +246,6 @@ bool VM::run(){
       WHEN(POP):
         pop();
         break;
-      WHEN(TCALL):
       WHEN(CALL):{
         /* caller prepare all the aruguments, 
            align in the stack in the order.
@@ -260,6 +260,71 @@ bool VM::run(){
         ip = rom.data()+func->offset;//jump
         break;
       }
+      WHEN(MCALL):{
+        auto func = AS_PROCEDURE(pop());
+        auto newbase = sp-func->arity;
+        vector<Value> args;
+        for(auto i=newbase;i<sp;i++){
+          args.push_back(values[i]);
+        }
+        auto id = func->hash_call(args);
+        auto it = func->cache.find(id);
+        if(it!=func->cache.end()){
+          // has cached answer,just return
+          auto cache_args = it->second.second;
+          if(args == cache_args){
+            //cout<<"[ find cache "<<dec<<id<<" for proc ";
+            //inspectObj(func);cout<<']'<<endl;
+            values[newbase] = it->second.first;
+            sp = newbase+1;
+            break;
+          }
+        }else{
+          // save call infomation
+          cur_proc = func;
+          cur_args = args;
+          cur_callid = id;
+        }
+        frames.push_back(callFrame(ip,bp,vsp));
+        vsp = &func->captureds;
+        bp = sp-func->arity;
+        ip = rom.data()+func->offset;//jump
+        break;
+      }
+      WHEN(TCALL):{
+        auto func = AS_PROCEDURE(pop());
+        auto base = sp-func->arity;
+        // move new arguments to old call frame
+        for(auto i=0;i<func->arity;i++){
+          values[bp+i] = values[base+i];
+        }
+        sp = bp + func->arity;
+        vsp = &func->captureds;
+        ip = rom.data()+func->offset;//jump
+        break;
+      }
+      WHEN(RET):{
+        values[bp] = values[sp-1];//only return one value
+        sp = bp+1;//point to next slot
+        //restore frame
+        bp = frames.back().bp;
+        vsp = frames.back().vsp;
+        ip = frames.back().ip;
+        frames.pop_back();
+        break;
+      }
+      WHEN(MRET):{
+        (cur_proc->cache)[cur_callid] =
+          CachePair(values[sp-1],cur_args);//add ans to cache
+        values[bp] = values[sp-1];//only return one value
+        sp = bp+1;//point to next slot
+        //restore frame
+        bp = frames.back().bp;
+        vsp = frames.back().vsp;
+        ip = frames.back().ip;
+        frames.pop_back();
+        break;
+      }
       WHEN(JMP):
         ip += *(int16_t*)ip-1;break;
       WHEN(JNE):{
@@ -268,15 +333,6 @@ bool VM::run(){
         }else {
           EAT(uint16_t);
         }
-        break;
-      }
-      WHEN(RET):{
-        values[bp] = values[sp-1];//only return one value
-        sp = bp+1;//point to next slot
-        bp = frames.back().bp;
-        vsp = frames.back().vsp;
-        ip = frames.back().ip;
-        frames.pop_back();
         break;
       }
       WHEN(HALT):{
@@ -299,8 +355,6 @@ bool VM::run(){
 #undef EXPECT
 #undef EAT
 }
-
-
 
 } }
 

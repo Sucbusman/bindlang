@@ -1,7 +1,8 @@
-; test stream programing idom
+; test stream programing idiom
 ;; helper
 snd = \t->t.tl.hd
 +1 = \x->+(x 1)
+*2 = \x->*(2 x)
 println = \x->begin(print(x) print("\n"))
 
 ;; stream maker
@@ -12,7 +13,7 @@ mk-stream=\f init
 
 ;; natural numbers
 nats = mk-stream(\x->x.+1 1)
-two-powers = mk-stream(\x->*(2 x) 1)
+two-powers = mk-stream(\x->x.*2 1)
 
 ;; stream consumer
 nth = \n s

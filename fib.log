@@ -81,3 +81,24 @@
 
        6.304745000 seconds user
        0.000000000 seconds sys
+
+# open -O2 optimize compile this project
+9227465
+ Performance counter stats for './bindlang test/fib.bd':
+
+          1,354.54 msec task-clock:u              #    0.999 CPUs utilized
+                 0      context-switches:u        #    0.000 K/sec
+                 0      cpu-migrations:u          #    0.000 K/sec
+               125      page-faults:u             #    0.092 K/sec
+     5,340,076,679      cycles:u                  #    3.942 GHz                      (83.17%)
+        19,542,276      stalled-cycles-frontend:u #    0.37% frontend cycles idle     (83.36%)
+     2,124,204,466      stalled-cycles-backend:u  #   39.78% backend cycles idle      (83.39%)
+    10,138,589,531      instructions:u            #    1.90  insn per cycle
+                                                  #    0.21  stalled cycles per insn  (83.39%)
+     1,956,766,874      branches:u                # 1444.600 M/sec                    (83.39%)
+        17,449,136      branch-misses:u           #    0.89% of all branches          (83.30%)
+
+       1.355455729 seconds time elapsed
+
+       1.347678000 seconds user
+       0.003322000 seconds sys

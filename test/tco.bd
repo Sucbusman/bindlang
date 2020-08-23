@@ -1,0 +1,9 @@
+;factorial which in tail recursion style
+fac=\n
+->begin(h=\i a
+        -> if(lt(i 2)
+              a
+              h(-(i 1) *(a i)))
+        h(n 1))
+
+print(fac(5))

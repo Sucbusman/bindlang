@@ -1,6 +1,6 @@
 #include <ios>
 #include <iostream>
-#include "value.h"
+#include "vm/value.h"
 using std::cout,std::endl;
 namespace bindlang::vm{
 
@@ -21,6 +21,21 @@ bool truthy(const Value &val){
     case VAL_NIL:return false;
     case VAL_BOOL:return val.as.boolean;
     default:return true;
+  }
+}
+
+bool Value::operator== (Value const& v) const{
+  if(v.type!=type) return false;
+  switch(type){
+    case VAL_NIL:    return true;
+    case VAL_BOOL:   return as.boolean == v.as.boolean;
+    case VAL_NUMBER: return as.number == v.as.number;
+    case VAL_Procedure:{
+      auto proc = cast(ObjProcedure*,as.obj);
+      auto proc2 = cast(ObjProcedure*,v.as.obj);
+      return proc->name == proc2->name;
+    }
+    default: return as.obj == v.as.obj;
   }
 }
 
@@ -45,14 +60,13 @@ void printVal(Value const& val){
 }
 
 
-
 void inspectVal(Value const& val){
   cout<<BLUECODE<<left<<setw(10)<<valTable[val.type]<<DEFAULT
       <<' '<<hex<<&val<<' ';
   switch(val.type){
     case VAL_NIL:    cout<<"nil";break;
     case VAL_BOOL:   cout<<(val.as.boolean?"#t":"#f");break;
-    case VAL_NUMBER: cout<<val.as.number;break;
+    case VAL_NUMBER: cout<<dec<<val.as.number;break;
     default:         inspectObj(val.as.obj);break;
   }
 }

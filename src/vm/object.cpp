@@ -48,14 +48,22 @@ Obj* ObjString::clone(){
 
 ObjProcedure* make_obj(string const&name,uint8_t arity,
                        size_t offset){
-  auto o = new ObjProcedure(name,arity,offset,objchain);
+  auto o = new ObjProcedure(name,arity,offset,0,objchain);
+  objchain = o;
+  bytesAllocated += name.size()+sizeof(arity)+sizeof(offset);
+  return o;
+}
+
+ObjProcedure* make_obj(string const&name,uint8_t arity,
+                       size_t offset,uint8_t property){
+  auto o = new ObjProcedure(name,arity,offset,property,objchain);
   objchain = o;
   bytesAllocated += name.size()+sizeof(arity)+sizeof(offset);
   return o;
 }
 
 Obj* ObjProcedure::clone() {
-  auto o = new ObjProcedure(name,arity,offset,objchain);
+  auto o = new ObjProcedure(name,arity,offset,property,objchain);
   o->captureds = captureds;
   objchain = o;
   bytesAllocated += name.size()+sizeof(arity)+sizeof(offset);
