@@ -31,8 +31,7 @@ void Interpreter::runFile(string const& file_name){
   if(files.empty()){
     //main point
     fn = string(file_name);
-    auto base = basename(fn);
-    envs.top()->set("_MAIN",mkval(base));
+    envs.top()->set("_MAIN",mkval(fn));
   }else{
     auto s =files.back();
     fn = dirname(s)+file_name;
@@ -45,8 +44,7 @@ void Interpreter::runFile(string const& file_name){
     return;
   }
   files.push_back(fn);
-  auto base = basename(fn);
-  envs.top()->set("_FILE",mkval(base));
+  envs.top()->set("_FILE",mkval(fn));
 
   auto ifs = ifstream(fn);
   auto scn = Scanner(ifs);

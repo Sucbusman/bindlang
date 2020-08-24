@@ -1,3 +1,2 @@
-myprint=\s
-->print(s)
-myprint("Hello\n")
+a = "hello wolrd\n"
+print(a)

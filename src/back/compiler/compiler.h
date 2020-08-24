@@ -55,7 +55,7 @@ class Compiler{
   void compileCall(ExprPtr);
 
   uint32_t emitFunc(string const&,uint8_t,uint8_t,
-                    std::function<void(void)> f);
+                    std::function<void(void)> f,bool copyp=true);
 
   void pushFunc(Local&, string const&, uint8_t,uint8_t,
                 std::function<void(void)> f);
@@ -84,6 +84,9 @@ class Compiler{
   //unordered_map<string,uint8_t> syscallTable;
   unordered_map<string,std::function<void(ExprPtrList)>> keywords;
   int error_num = 0;
+
+  //modules
+  vector<string> files;
 };
 
 }

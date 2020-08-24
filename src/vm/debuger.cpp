@@ -13,8 +13,10 @@ void VM::dumpRegs(){
 }
 
 void VM::dumpStack(){
+  //sp point to next slot to place coming value
+  //so, sp-1 is the available value at stack top
   for(int it=values.size()-1;it>=0;it--){
-    if(it==bp and it==sp){
+    if(it==bp and it==sp-1){
       printIndent(3);
       cout<<"=";
     }
@@ -22,7 +24,7 @@ void VM::dumpStack(){
       printIndent(3);
       cout<<'_';
     }
-    else if(it==sp){
+    else if(it==sp-1){
       printIndent(3);
       cout<<'>';
     }

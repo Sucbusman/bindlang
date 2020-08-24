@@ -3,6 +3,7 @@ build/*
 release/*
 test/*.bdc
 bindlang
+.clangd
 src/.ccls-cache/
 *#
 *.note

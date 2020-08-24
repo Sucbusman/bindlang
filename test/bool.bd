@@ -3,3 +3,8 @@ b = #f
 if(a
    print(a)
    print(b))
+
+and(a
+print(2)
+b
+print(3))

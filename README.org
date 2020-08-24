@@ -3,8 +3,8 @@
  > a functional language with some experimental orignal feature
 
 ** FEATURE
-
    + dynamic strong type
+   + mark sweep garbage collection
    + clousure
    + curry
    + serial call

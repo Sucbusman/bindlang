@@ -15,6 +15,7 @@ build/%.o: src/%.cpp
 .PHONY:clean option ast install
 clean:
 	find build/ -name *.o -delete
+	find test/  -name *.blc -delete 
 option:
 	@echo $(Sources)
 	@echo $(Objects)

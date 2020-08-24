@@ -1,0 +1,3 @@
+b = "from mod2\n"
+load("mod1.bd")
+print(a)

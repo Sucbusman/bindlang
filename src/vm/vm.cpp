@@ -105,16 +105,6 @@ bool VM::run(){
         break;
       }
       WHEN(NOP):break;
-      WHEN(SETG):{
-        dword = EAT(uint32_t);
-        values[dword]=pop();
-        break;
-      }
-      WHEN(GETG):{
-        dword = EAT(uint32_t);
-        push(values[dword]);
-        break;
-      }
       WHEN(SETC):{
         byte = EAT(uint8_t);
         if(vsp){
@@ -191,6 +181,7 @@ bool VM::run(){
       WHEN(LT):     BINARY_OP(number,<,bool);break;
       WHEN(TRUE):   push(Value(true));break;
       WHEN(FALSE):  push(Value(false));break;
+      WHEN(NOT):    push(Value(truthy(pop())?false:true));break;
       WHEN(EQ):{
         auto r = pop();
         auto l = pop();
@@ -327,6 +318,14 @@ bool VM::run(){
       }
       WHEN(JMP):
         ip += *(int16_t*)ip-1;break;
+      WHEN(JEQ):{
+        if(truthy(pop())){
+          ip += *(int16_t*)ip-1;
+        }else {
+          EAT(uint16_t);
+        }
+        break;
+      }
       WHEN(JNE):{
         if(not truthy(pop())){
           ip += *(int16_t*)ip-1;
@@ -361,12 +360,6 @@ bool VM::run(){
 /* compueted goto version,not easy to extend,
    optimize vm with it last.
 #define NEXT() do{opc=EAT(uint8_t);goto *inst_labels[opc]}while(0)
-  VM_LABEL(SETG){
-    auto a=2;
-  }
-  VM_LABEL(GETG){
-    
-  }
   VM_LABEL(SETC){
     
   }

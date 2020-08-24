@@ -233,22 +233,27 @@ size_t Coder::CAPTURE(vector<CapturedValue>& value_infos){
 #define INST1(F)                                 \
   void Coder::F(){                               \
     pushb((uint8_t)OpCode::F);                   \
+    last_op = OpCode::F;                         \
   }
 #define INST2(F)                                 \
   void Coder::F(uint8_t n){                      \
     pushi(OpCode::F,n);                          \
+    last_op = OpCode::F;                         \
   }
 #define INST3(F)                                 \
   void Coder::F(uint16_t n){                     \
     pushi(OpCode::F,n);                          \
+    last_op = OpCode::F;                         \
   }
 #define INST5(F)                                 \
   void Coder::F(uint32_t idx){                   \
     pushi(OpCode::F,idx);                        \
+    last_op = OpCode::F;                         \
   }
 #define INST9(F)                                 \
   void Coder::F(uint64_t n){                     \
     pushi(OpCode::F,n);                          \
+    last_op = OpCode::F;                         \
   }
 
 void Coder::CALL(){
@@ -281,6 +286,7 @@ INST1(GT);
 INST1(LT);
 INST1(TRUE);
 INST1(FALSE);
+INST1(NOT);
 INST1(UNIT);
 INST1(RCONS);
 INST1(CONS);
@@ -292,6 +298,7 @@ INST2(SYSCALL);
 INST2(GETC);
 INST2(SETC);
 INST3(JNE);
+INST3(JEQ);
 INST3(JMP);
 INST3(GETL);
 INST3(SETL);

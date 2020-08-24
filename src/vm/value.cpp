@@ -30,11 +30,16 @@ bool Value::operator== (Value const& v) const{
     case VAL_NIL:    return true;
     case VAL_BOOL:   return as.boolean == v.as.boolean;
     case VAL_NUMBER: return as.number == v.as.number;
-    case VAL_Procedure:{
-      auto proc = cast(ObjProcedure*,as.obj);
-      auto proc2 = cast(ObjProcedure*,v.as.obj);
-      return proc->name == proc2->name;
-    }
+#define WHEN(T,EXPRS)                                  \
+    case VAL_##T:{                                     \
+      auto l = cast(Obj##T*,as.obj);                   \
+      auto r = cast(Obj##T*,v.as.obj);                 \
+      EXPRS;}
+
+      WHEN(Procedure,
+           return l->name == r->name;)
+      WHEN(String,
+           return l->s == r->s;)
     default: return as.obj == v.as.obj;
   }
 }

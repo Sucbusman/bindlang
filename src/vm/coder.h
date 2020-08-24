@@ -57,6 +57,7 @@ class Coder{
   void GT();
   void LT();
   void EQ();
+  void NOT();
   void TRUE();
   void FALSE();
   void UNIT();
@@ -71,6 +72,7 @@ class Coder{
   void TCALL();
   void COPY();
   void JNE(uint16_t);
+  void JEQ(uint16_t);
   void JMP(uint16_t);
   void SETL(uint16_t);
   void GETL(uint16_t);

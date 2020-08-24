@@ -9,14 +9,14 @@
 
 #define VM_INSTALL_ALL_INST(f) \
   f(START) f(NOP)                                       \
-  f(GETL) f(GETG) f(SETC) f(GETC) f(SETL) f(SETG)       \
+  f(GETL) f(SETC) f(GETC) f(SETL)                       \
   f(CNST) f(CNSH) f(IMM)                                \
   f(PUSH) f(POP)                                        \
-  f(CAPTURE)  f(CALL) f(TCALL) f(MCALL) f(RET) f(MRET)  \
-  f(JMP)  f(JNE)                                        \
+  f(CAPTURE) f(CALL) f(TCALL) f(MCALL) f(RET) f(MRET)   \
+  f(JMP)  f(JNE)     f(JEQ)                             \
   f(ADD)  f(MINUS)   f(MULT) f(DIVIDE)                  \
   f(EQ)   f(GT)      f(LT)                              \
-  f(TRUE) f(FALSE)                                      \
+  f(TRUE) f(FALSE)   f(NOT)                             \
   f(UNIT) f(RCONS) f(CONS) f(HEAD) f(TAIL) f(EMPTYP)    \
   f(HALT) f(SYSCALL) f(COPY)
   

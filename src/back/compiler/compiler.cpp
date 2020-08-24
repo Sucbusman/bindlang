@@ -51,12 +51,28 @@ void Compiler::Closure::clear(){
   map.clear();
   values.clear();
 }
-
-void Compiler::compileFile2mem(string const& fn){
+#define mkval(EXP) (vm::Value(vm::make_obj(EXP)))
+void Compiler::compileFile2mem(string const& filename){
+  string fn;
+  bool top_modulep = false;
+  if(files.empty()){
+    fn = string(filename);
+    pushVar(curScope(), "_MAIN",[this,&fn](){coder.CNST(mkval(fn));});
+    top_modulep = true;
+  }else{
+    auto s = files.back();
+    fn = dirname(s)+filename;
+    for(auto const& already:files){
+      if(already==fn) return;
+    }
+  }
   if(access(fn.c_str(), F_OK)!=0){
     cerr<<"Can not open file:"<<fn<<endl;
     return;
   }
+  files.push_back(fn);
+  pushVar(curScope(), "_FILE",
+         [this,&fn](){coder.CNST(mkval(fn));});
   auto ifs = ifstream(fn);
   auto scn = Scanner(ifs);
   auto parser = Parser(scn);
@@ -68,11 +84,15 @@ void Compiler::compileFile2mem(string const& fn){
     define_funcp = false;
     compile(move(expr));
   }
-  if(not hasError()){
-    coder.HALT();
-  }else{
+  if(hasError()){
     cerr<<"compile failed :("<<endl;
+  }else if(top_modulep){
+    coder.HALT();
   }
+}
+
+void Compiler::writeBinary(string const& fn){
+  coder.writeBinary(fn.c_str());
 }
 
 void Compiler::compileFile(string const& fn){
@@ -80,10 +100,6 @@ void Compiler::compileFile(string const& fn){
   if(not hasError()){
     writeBinary(dirname(fn)+prefix(basename(fn))+".bdc");
   }
-}
-
-void Compiler::writeBinary(string const& fn){
-  coder.writeBinary(fn.c_str());
 }
 
 inline void nop(){}
@@ -319,17 +335,20 @@ void Compiler::compileCall(ExprPtr expr){
   }
 }
 
+#define PLACE_HOLDER 0
 uint32_t Compiler::emitFunc(string const& name,
                             uint8_t arity,uint8_t property,
-                            std::function<void(void)> f){
+                            std::function<void(void)> f,bool copyp){
   auto pos_jmp = coder.tellp();
-  coder.JMP(0);//place holder,jump out of function code
+  coder.JMP(PLACE_HOLDER);
   auto pos_func = coder.tellp();
   f();
   coder.RET();//normal function always return...
   coder.modify16(pos_jmp+1,coder.tellp()-pos_jmp);//patch
   coder.CNST(vm::Value(vm::make_obj(name,arity,pos_func,property)));
-  coder.COPY();
+  if(copyp){
+    coder.COPY();
+  }
   return coder.tellp();
 }
 
@@ -337,7 +356,7 @@ void Compiler::pushFunc(Local & scope,
                             string const& name,
                         uint8_t arity,uint8_t property,
                             std::function<void(void)> f){
-  emitFunc(name,arity,property,f);
+  emitFunc(name,arity,property,f,false);
   scope.set(name);
   return;
 }
@@ -357,7 +376,7 @@ void Compiler::pushVar(Local & scope,string const& name,
 void Compiler::standardEnvironment(){
   // push predefine function
   // print
-  pushTopFunc("print",1,1,[this](){coder.SYSCALL(0);});
+  pushTopFunc("gc",0,1,[this](){coder.SYSCALL(2);});
   pushTopFunc("+",2,0,[this](){coder.ADD();});
   pushTopFunc("-",2,0,[this](){coder.MINUS();});
   pushTopFunc("*",2,0,[this](){coder.MULT();});
@@ -369,7 +388,13 @@ void Compiler::standardEnvironment(){
   pushTopFunc("hd",1,0,[this](){coder.HEAD();});
   pushTopFunc("tl",1,0,[this](){coder.TAIL();});
   pushTopFunc("empty?",1,0,[this](){coder.EMPTYP();});
-  pushTopFunc("gc",0,1,[this](){coder.SYSCALL(2);});
+  pushTopFunc("not",1,0,[this](){coder.NOT();});
+  keywords["print"] = [this](ExprPtrList args){
+    for(auto & arg:args){
+      compile(move(arg));
+      coder.SYSCALL(0);
+    }
+  };
   keywords["if"] = [this](ExprPtrList args){
     if(args.size()!=2 and args.size()!=3)
       error("Wrong argument number ",args.size(),
@@ -377,11 +402,11 @@ void Compiler::standardEnvironment(){
     else{
       compile(move(args[0]));
       auto test_end = coder.tellp();
-      coder.JNE(0);//place holder
+      coder.JNE(PLACE_HOLDER);
       compile(move(args[1]));
 
       auto then_end = coder.tellp();
-      coder.JMP(0);//place holder
+      coder.JMP(PLACE_HOLDER);
       auto else_start = coder.tellp();
       coder.modify16(test_end+1,else_start-test_end);
       if(args.size()>2){
@@ -400,6 +425,48 @@ void Compiler::standardEnvironment(){
       compile(move(*it));
     }
     compile(move(*it));
+  };
+
+  keywords["and"] = [this](ExprPtrList args){
+    if(args.size()<1)
+      error("and expect one more argument");
+    else{
+      auto jmp_points = vector<size_t>();
+      compile(move(args[0]));
+      for(int i=1;i<args.size();i++){
+        jmp_points.push_back(coder.tellp());
+        coder.JNE(PLACE_HOLDER);
+        compile(move(args[i]));
+      }
+      auto all_eval = coder.tellp();
+      coder.JMP(PLACE_HOLDER);
+      for(auto & point:jmp_points){
+        coder.modify16(point+1,coder.tellp()-point);
+      }
+      coder.FALSE();
+      coder.modify16(all_eval+1,coder.tellp()-all_eval);
+    }
+  };
+
+  keywords["or"] = [this](ExprPtrList args){
+    if(args.size()<1)
+      error("and expect one more argument");
+    else{
+      auto jmp_points = vector<size_t>();
+      compile(move(args[0]));
+      for(int i=1;i<args.size();i++){
+        jmp_points.push_back(coder.tellp());
+        coder.JEQ(PLACE_HOLDER);
+        compile(move(args[i]));
+      }
+      auto all_eval = coder.tellp();
+      coder.JMP(PLACE_HOLDER);
+      for(auto & point:jmp_points){
+        coder.modify16(point+1,coder.tellp()-point);
+      }
+      coder.TRUE();
+      coder.modify16(all_eval+1,coder.tellp()-all_eval);
+    }
   };
 
   // keywords["while"] = [this](ExprPtrList args){
@@ -470,6 +537,26 @@ void Compiler::standardEnvironment(){
       coder.TAIL();
     }
   };
+  keywords["load"]=[this](ExprPtrList args){
+    for(auto & arg:args){
+      if(arg->type != ATOM)
+        error("load expect strings.");
+      else{
+        auto atom = rcast(ExprAtom*,arg);
+        auto tok = atom->literal;
+        switch(tok.type){
+          case tok_str:{
+            compileFile2mem(tok.literal);
+            break;
+          }
+          default:{
+            error("load expect string literals.");
+            break;
+          }
+        }
+      }
+    }
+  };
   pushVar(toplevel,"null",[this](){coder.UNIT();});
   pushVar(toplevel,"#t",[this](){coder.CNST(vm::Value(true));});
   pushVar(toplevel,"#f",[this](){coder.CNST(vm::Value(false));});
@@ -478,4 +565,5 @@ void Compiler::standardEnvironment(){
   coder.START();
 }
 
+#undef PLACE_HOLDER
 }

@@ -27,12 +27,6 @@ uint8_t* VM::disas_inst(uint8_t* pc){
       cout<<dec<<(int)n<<endl;
       break;
     }
-    WHEN(SETG):
-    WHEN(GETG):{
-      auto n = EAT(int32_t);
-      cout<<dec<<n<<endl;
-      break;
-    }
     WHEN(CNST):{
       auto n = EAT(uint32_t);
       cout<<dec<<n<<"  #";
@@ -53,6 +47,7 @@ uint8_t* VM::disas_inst(uint8_t* pc){
       break;
     }
     WHEN(JNE):
+    WHEN(JEQ):
     WHEN(JMP):{
       int16_t n = EAT(int16_t);
       auto jmp_ip = pc-1-sizeof(decltype(n))-rom.data()+n;
@@ -79,6 +74,7 @@ uint8_t* VM::disas_inst(uint8_t* pc){
     WHEN(START):
     WHEN(TRUE):
     WHEN(FALSE):
+    WHEN(NOT):
     WHEN(ADD):
     WHEN(MINUS):
     WHEN(MULT):
