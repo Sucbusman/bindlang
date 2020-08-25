@@ -68,6 +68,11 @@ class Coder{
   void TAIL();
   void EMPTYP();
   void LEN();
+  void TAKE();
+  void CONCAT();
+  void STR2INTS();
+  void INT2STR();
+  void INT2FILE();
   void RET();
   void HALT();
   void CALL();

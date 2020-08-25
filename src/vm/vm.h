@@ -9,10 +9,15 @@
 #include "vm/type.h"
 
 namespace bindlang { namespace vm{
-enum class SYSCALL_TYPE{
-  PRINT,
-  INSPECT,
-  GC
+
+enum class SYSCALL_T:uint8_t{
+  print,
+  inspect,
+  gc,
+  open,
+  close,
+  read,
+  write
 };
 
 struct callFrame{
@@ -88,8 +93,11 @@ class VM{
   
   // error
   int error_num=0;
+  bool handler = false;
   template<typename... Args>
   bool error(Args... args);
+  template<typename... Args>
+  bool warning(Args... args);
   inline bool hasError();
 };
 

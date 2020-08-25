@@ -300,6 +300,7 @@ Token Scanner::tokIdentify(){
     else if(not (ch=='?' or
                  ch=='!' or
                  ch=='_' or
+                 ch=='>' or
                  isIdStart(ch) or
                  isdigit(ch))) break;
     else

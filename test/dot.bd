@@ -10,13 +10,17 @@ repeat-string = \n s
 
 name = "Bindlang " row = 9
 
-row.times(\n->let(l= fib(n) r= fib(-(row.+1 n)) fib-row=fib(row) m=+(-(fib-row l r) 1)
+let(
+fib-row = fib(row)
+len-name= len(name)
+row.times(\n->let(l= fib(n) r= fib(-(row.+1 n)) m=+(-(fib-row l r) 2)
                   mid-row=/(row.+1 2)   half = /(-(fib-row.+1 l r len(name)) 2)
                   repeat-string(l "#")
                   if(eq(n mid-row)
                      let(repeat-string(half " ")
                          print(name)
-                         repeat-string(half " "))
+                         repeat-string(+(half 1) " "))
                      repeat-string(m " "))
                   repeat-string(r "*")
                   newline()))
+)

@@ -15,16 +15,17 @@
 (add-to-list 'auto-mode-alist
              '("\\.bd\\'" . bindlang-mode))
 
-
 (defvar bindlang-highlights
   `((,(rx (or symbol-start "->")
-         (group  (or "eq" "ge" "gt" "le" "lt"
-                     "push!" "pop!" "set!" "take" "len"
+         (group  (or "eq"  "gt" "lt"
+                     "take" "len" "++"
+                     "sys/read" "sys/write" "sys/open" "sys/close"
+                     "int>str" "str>ints" "int>file"
                      "not" "and" "or"
                      "+" "-" "*" "/"
                      "=>" "'" "#t" "#f" "null"
                      "hd" "tl" "cons" "empty?"
-                     "begin" "if" "while"
+                     "let" "if" "while"
                      "print" ))
          symbol-end)
      (1 font-lock-keyword-face))
@@ -92,6 +93,7 @@
     (modify-syntax-entry ?# "w" st)
     (modify-syntax-entry ?- "_" st)
     (modify-syntax-entry ?> "_" st)
+    (modify-syntax-entry ?= "_" st)
     (modify-syntax-entry ?\; "<" st)
     (modify-syntax-entry ?\n ">b" st)
     st)

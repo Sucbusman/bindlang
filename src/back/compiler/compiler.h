@@ -72,6 +72,9 @@ class Compiler{
   template <typename... Arg>
   void error(Arg... args);
 
+  unordered_map<string,size_t> const_strings;
+  size_t CNSTStr(string);
+
   //if compiling a root expression
   //for unneeded expression elimition
   bool rootp = true;

@@ -1,0 +1,40 @@
+;;test file IO
+O_RDONLY = 0
+O_WRONLY = 1
+O_RDWR   = 2
+O_CREAT  = 64
+
+P_RWX = 493 ;00755
+
+open=\fn
+->sys/open(fn +(O_RDWR O_CREAT) P_RWX)
+
+stdin = int>file(0)
+
+read =\n->\fd
+->sys/read(fd n)
+
+readln=\fd
+->let(h=\acc
+      ->let(byte= sys/read(fd 1)
+            if(eq(byte "\n")
+               acc
+               h(++(acc byte))))
+      h(""))
+
+write=\s->\fd
+->sys/write(fd s)
+
+close=\fd->sys/close(fd)
+
+if(eq(_FILE _MAIN)
+   let(
+       msg = stdin.readln
+       f = "./test-io.txt"
+       print("Yes,you say:" msg "\n")
+       fd = open(f)
+       fd.write(msg)
+       print("Write this to " f)
+       fd.close
+       )
+   )

@@ -30,6 +30,7 @@ bool Value::operator== (Value const& v) const{
     case VAL_NIL:    return true;
     case VAL_BOOL:   return as.boolean == v.as.boolean;
     case VAL_NUMBER: return as.number == v.as.number;
+    case VAL_FILE:   return as.filedes == v.as.filedes;
 #define WHEN(T,EXPRS)                                  \
     case VAL_##T:{                                     \
       auto l = cast(Obj##T*,as.obj);                   \
@@ -50,6 +51,7 @@ bool valueEqual(const Value & v1, const Value & v2){
     case VAL_NIL:return true;
     case VAL_BOOL:return v1.as.boolean == v2.as.boolean;
     case VAL_NUMBER:return v1.as.number == v2.as.number;
+    case VAL_FILE:return v1.as.filedes == v2.as.filedes;
     default:return v1.as.obj == v2.as.obj;//object same
   }
 }
@@ -60,6 +62,7 @@ void printVal(Value const& val){
     case VAL_NIL:    cout<<"nil";break;
     case VAL_BOOL:   cout<<(val.as.boolean?"#t":"#f");break;
     case VAL_NUMBER: cout<<dec<<val.as.number;break;
+    case VAL_FILE:   cout<<"<fd:"<<dec<<val.as.filedes<<">";break;
     default:         printObj(val.as.obj);break;
   }
 }
@@ -72,6 +75,7 @@ void inspectVal(Value const& val){
     case VAL_NIL:    cout<<"nil";break;
     case VAL_BOOL:   cout<<(val.as.boolean?"#t":"#f");break;
     case VAL_NUMBER: cout<<dec<<val.as.number;break;
+    case VAL_FILE:   cout<<"<fd:"<<dec<<val.as.number<<">";break;
     default:         inspectObj(val.as.obj);break;
   }
 }
@@ -83,6 +87,7 @@ Value copy_val(Value const& v){
     case VAL_BOOL:
     case VAL_NIL:
     case VAL_NUMBER:
+    case VAL_FILE:
       val.as = v.as;
       break;
     case VAL_List:

@@ -7,3 +7,4 @@ bindlang
 src/.ccls-cache/
 *#
 *.note
+*.txt

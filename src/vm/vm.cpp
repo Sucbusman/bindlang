@@ -2,7 +2,9 @@
 #include "vm/vm.h"
 #include "vm/coder.h"
 #include <bits/stdint-uintn.h>
+#include <unistd.h>
 #include <cstdio>
+#include <fcntl.h>
 
 namespace bindlang { namespace vm{
 
@@ -16,6 +18,12 @@ inline bool VM::error(Args...args){
   dumpRegs();
   dumpStack();
   exit(1);
+}
+
+template <typename... Args>
+inline bool VM::warning(Args...args){
+  (cerr<< ... <<args)<<endl;
+  return false;
 }
 
 inline bool VM::hasError(){
@@ -45,22 +53,97 @@ void VM::init(vector<std::uint8_t> &&codes,
 
 
 void VM::standardSyscalls(){
-  //print
+#define EXPECT(T)                               \
+  if(values[sp-1].type!=VAL_##T)                \
+    {cerr<<"Expect " #T<<", but get ";          \
+      inspectVal(values[sp-1]);                 \
+      values[sp-1]=Value(false);return false;}
+  //0 print(Value)
   syscalls.push_back([this](){
     printVal(values[sp-1]);
     return true;
   });
-  //inspect
+  //1 inspect(Value)
   syscalls.push_back([this](){
     inspectVal(values[sp-1]);
     return true;
   });
-  //garbage colllect
+  //2 garbage colllect()
   syscalls.push_back([this](){
     cout<<"[gc] bytes allocated:"<<bytesAllocated<<endl;
     recycleMem();
     return true;
   });
+  /* See /usr/include/asm-generic/fcntl.h */
+  //3 open(String,NUMBER,NUMBER)
+  syscalls.push_back([this](){
+    EXPECT(NUMBER);
+    uint16_t mode = pop().as.number;
+    EXPECT(NUMBER);
+    int      flag = pop().as.number;
+    EXPECT(String);
+    auto s = AS_CSTRING(values[sp-1]);
+    int fd = open(s->c_str(),flag,mode);
+    if(fd<0){
+      warning("can not open file ",*s," with flag ",flag);
+      values[sp-1] = Value(false);
+      return false;
+    }
+    values[sp-1] = Value((uint16_t)fd);
+    return true;
+  });
+  //4 close(FILE)
+  syscalls.push_back([this](){
+    EXPECT(FILE);
+    int fd = values[sp-1].as.number;
+    if(close(fd)==0){
+      values[sp-1] = Value(true);
+      return true;
+    }else{
+      values[sp-1] = Value(false);
+      return false;
+    }
+  });
+  //5 read(FILE,NUMBER)
+  syscalls.push_back([this](){
+    EXPECT(NUMBER);
+    auto n = pop().as.number;
+    EXPECT(FILE);
+    auto fd = values[sp-1].as.number;
+    #define BUFSIZE 128
+    char buf[BUFSIZE]="\0";
+    if(n>0){
+      read(fd,buf,n%BUFSIZE);
+      string s = string(buf);
+      size_t times = n/BUFSIZE;
+      while(times--){
+        read(fd,buf,BUFSIZE);
+        s+=buf;
+      }
+      values[sp-1] = Value(make_obj(s));
+    }else{
+      values[sp-1] = Value(make_obj(""));
+    }
+    return true;
+    #undef BUFSIZE
+  });
+  // 6 write(FILE,STRING)
+  syscalls.push_back([this](){
+    EXPECT(String);
+    auto s = AS_CSTRING(pop());
+    EXPECT(FILE);
+    uint16_t fd = values[sp-1].as.filedes;
+    int n = write(fd,s->c_str(),s->size());
+    if(n<0){
+      warning("write to file ",fd," failed.");
+      values[sp-1] = Value(false);
+      return false;
+    }else{
+      values[sp-1] = Value((uint64_t)n);
+      return true;
+    }
+  });
+#undef EXPECT
 }
 
 inline void VM::push(Value const& val){
@@ -87,9 +170,9 @@ bool VM::run(){
 #define dwordp ((uint64_t*)ip)
 #define WHEN(OP) case (uint8_t)OpCode::OP
 #define BINARY_OP(type,op,rst_type)            \
-  do{auto r = pop();auto l = pop();            \
+  do{auto r = pop();auto l = values[sp-1];     \
     rst_type ans = (l.as.type op r.as.type);   \
-    push(Value(ans));}while(0)
+    values[sp-1]=Value(ans);}while(0)
 #define EXPECT(T)                              \
   if(values[sp-1].type != T){error("Expect " #T);break;}
   uint8_t  byte;
@@ -238,6 +321,57 @@ bool VM::run(){
         EXPECT(VAL_String);
         auto s = AS_CSTRING(values[sp-1]);
         values[sp-1] = Value(s->size());
+        break;
+      }
+      WHEN(TAKE):{//take(String,NUMBER,NUMBER)
+        EXPECT(VAL_NUMBER);
+        auto end = pop().as.number;
+        EXPECT(VAL_NUMBER);
+        auto begin = pop().as.number;
+        EXPECT(VAL_String);
+        auto s = AS_CSTRING(values[sp-1]);
+        if(begin>s->size()){
+         error("index out of range.");
+         values[sp-1] = Value(false);
+        }else{
+          string sub = s->substr(begin,end);
+          values[sp-1] = Value(make_obj(sub));
+        }
+        break;
+      }
+      WHEN(CONCAT):{
+        EXPECT(VAL_String);
+        auto r = AS_CSTRING(pop());
+        EXPECT(VAL_String);
+        auto l = AS_CSTRING(values[sp-1]);
+        auto a = *l+*r;
+        values[sp-1] = Value(make_obj(a));
+        break;
+      }
+      WHEN(STR2INTS):{
+        EXPECT(VAL_String);
+        auto s = AS_CSTRING(values[sp-1]);
+        auto unit = make_obj(Value(false),nullptr);
+        ObjList* last = unit;
+        for(auto it=s->rbegin();it!=s->rend();++it){
+          last = make_obj(Value((*it)),last);
+        }
+        values[sp-1] = Value(last);
+        break;
+      }
+      WHEN(INT2STR):{
+        EXPECT(VAL_NUMBER);
+        auto n = values[sp-1].as.number;
+        n %= 128;
+        char cstr[2]={'\0','\0'};
+        cstr[0] = (char)n;
+        values[sp-1] = Value(make_obj(cstr));
+        break; 
+      }
+      WHEN(INT2FILE):{
+        EXPECT(VAL_NUMBER);
+        uint16_t fd = values[sp-1].as.filedes;
+        values[sp-1] = Value(fd);
         break;
       }
       WHEN(PUSH):

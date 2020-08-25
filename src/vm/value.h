@@ -19,7 +19,8 @@
   f(EQ)   f(GT)      f(LT)                              \
   f(TRUE) f(FALSE)   f(NOT)                             \
   f(UNIT) f(RCONS) f(CONS) f(HEAD) f(TAIL) f(EMPTYP)    \
-  f(LEN)                                                \
+  f(LEN)  f(TAKE)  f(CONCAT)                            \
+  f(INT2STR) f(STR2INTS) f(INT2FILE)                    \
   f(HALT) f(SYSCALL) f(COPY)
   
 #define VM_EXPAND_LIST(i) i,
@@ -27,7 +28,7 @@
 #define VM_EXPAND_LABEL_LIST(i) &&VML_##i,
 #define VM_LABEL(i) VML_##i:
 #define VM_INSTALL_ALL_VAL(f)\
-  f(NIL) f(BOOL) f(NUMBER) f(String) f(Procedure) f(List)
+  f(NIL) f(BOOL) f(NUMBER) f(FILE) f(String) f(Procedure) f(List)
 #define VM_EXPAND_VAL(i) VAL_##i,
 #define VM_INSTALL_ALL_OBJ(f) \
   f(String) f(Procedure) f(List)
@@ -80,6 +81,7 @@ struct Value{
   union{
     bool boolean;
     int64_t number;
+    uint16_t filedes;
     uint64_t address;
     Obj *obj;
   }as;
@@ -88,8 +90,12 @@ struct Value{
     :type(VAL_BOOL){as.boolean=boolean;}
   Value(uint32_t number)
     :type(VAL_NUMBER){as.number = number;}
+  Value(char ch)
+    :type(VAL_NUMBER){as.number = ch;}
   Value(uint64_t number)
     :type(VAL_NUMBER){as.number = number;}
+  Value(uint16_t fd)
+    :type(VAL_FILE){as.filedes = fd;}
 #define OBJ2VAL(T)                               \
   Value(Obj##T *obj):type(VAL_##T){as.obj = (Obj*)obj;}
   OBJ2VAL(String);

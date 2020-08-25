@@ -5,6 +5,7 @@
 #include "back/compiler/compiler.h"
 #include "define/type.h"
 #include "util/utils.h"
+#include "vm/vm.h"
 namespace bindlang{
 #define backup(V)  auto V##_backup = V 
 #define recover(V) do{V = V##_backup;}while(0)
@@ -73,12 +74,25 @@ void Compiler::Closure::clear(){
 }
 
 #define mkval(EXP) (vm::Value(vm::make_obj(EXP)))
+
+size_t Compiler::CNSTStr(string s){
+  auto it = const_strings.find(s);
+  bool find = it!=const_strings.end();
+  if(find) {
+    coder.CNST(it->second);
+    return it->second;
+  }
+  size_t idx = coder.CNST(mkval(s));
+  const_strings[s] = idx;
+  return idx;
+}
+
 void Compiler::compileFile2mem(string const& filename){
   string fn;
   bool top_modulep = false;
   if(files.empty()){
     fn = string(filename);
-    pushVar(curScope(), "_MAIN",[this,&fn](){coder.CNST(mkval(fn));});
+    pushVar(curScope(), "_MAIN",[this,&fn](){CNSTStr(fn);});
     top_modulep = true;
   }else{
     auto s = files.back();
@@ -93,7 +107,7 @@ void Compiler::compileFile2mem(string const& filename){
   }
   files.push_back(fn);
   pushVar(curScope(), "_FILE",
-         [this,&fn](){coder.CNST(mkval(fn));});
+         [this,&fn](){CNSTStr(fn);});
   auto ifs = ifstream(fn);
   auto scn = Scanner(ifs);
   auto parser = Parser(scn);
@@ -153,7 +167,7 @@ void Compiler::compileAtom(ExprPtr expr){
       break;
     }
     case tok_str:
-      coder.CNST(vm::Value(vm::make_obj(tok.literal)));
+      CNSTStr(tok.literal);
       break;
   }
 }
@@ -403,7 +417,14 @@ void Compiler::pushVar(Local & scope,string const& name,
 void Compiler::standardEnvironment(){
   // push predefine function
   // print
-  pushTopFunc("gc",0,1,[this](){coder.SYSCALL(2);});
+#define pushSyscall(name,arity,side_effectp) \
+  pushTopFunc("sys/" #name,arity,side_effectp,      \
+       [this](){coder.SYSCALL((uint8_t)vm::SYSCALL_T::name);});
+  pushSyscall(gc,0,1);
+  pushSyscall(open,3,1);
+  pushSyscall(close,1,1);
+  pushSyscall(read,2,1);
+  pushSyscall(write,2,1);
   pushTopFunc("+",2,0,[this](){coder.ADD();});
   pushTopFunc("-",2,0,[this](){coder.MINUS();});
   pushTopFunc("*",2,0,[this](){coder.MULT();});
@@ -417,7 +438,11 @@ void Compiler::standardEnvironment(){
   pushTopFunc("empty?",1,0,[this](){coder.EMPTYP();});
   pushTopFunc("not",1,0,[this](){coder.NOT();});
   pushTopFunc("len",1,0,[this](){coder.LEN();});
-
+  pushTopFunc("take",3,0,[this](){coder.TAKE();});
+  pushTopFunc("++",2,0,[this](){coder.CONCAT();});
+  pushTopFunc("str>ints",1,0,[this](){coder.STR2INTS();});
+  pushTopFunc("int>str",1,0,[this](){coder.INT2STR();});
+  pushTopFunc("int>file",1,0,[this](){coder.INT2FILE();});
   keywords["print"] = [this](ExprPtrList args){
     if(args.size()<1){
       error("print expect at least one expression.");
