@@ -2,6 +2,7 @@
 #define __coder__
 #include "version.h"
 #include "vm/value.h"
+#include <bits/stdint-uintn.h>
 #include <cstdint>
 
 namespace bindlang::vm{
@@ -66,9 +67,12 @@ class Coder{
   void HEAD();
   void TAIL();
   void EMPTYP();
+  void LEN();
   void RET();
   void HALT();
   void CALL();
+  void VCALL();
+  void VRET();
   void TCALL();
   void COPY();
   void JNE(uint16_t);

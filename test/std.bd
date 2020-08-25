@@ -31,29 +31,29 @@ foldr = \f l i
      f(hd(l) foldr(f tl(l) i)))
 
 range = \n
-->begin(h=\c l ->
+->let(h=\c l ->
         if(eq(c n)
            l
            h(c.+1 cons(c l)))
         h(0 []))
 
 times = \f -> \n
-->begin(h=\x->if(lt(x 2)
+->let(h=\x->if(lt(x 2)
                  f(x)
-                 begin(f(x) h(-(x 1))))
+                 let(f(x) h(-(x 1))))
         h(n))
 
 newline = \->print("\n")
 
-;;test
-if(eq( _FILE _MAIN)
-   begin(
-         lst = [1 2 3 4 5]
-         print(filter(\x->gt(x 3) map(+1 lst)) ) newline()
-         print("foldl list:" foldl(+ 0 lst) ) newline()
-         print("foldr list:" foldr(- lst 0) ) newline()
-         print("range(5):" range(5) ) newline()
-         6.times(\n->print(n))
-         newline()
-         )
-   )
+;test
+ if(eq( _FILE _MAIN)
+    let(
+        lst = [1 2 3 4 5]
+        print(filter(\x->gt(x 3) map(+1 lst)) ) newline()
+        print("foldl list:" foldl(+ 0 lst) ) newline()
+        print("foldr list:" foldr(- lst 0) ) newline()
+        print("range(5):" range(5) ) newline()
+        6.times(\n->print(n))
+        newline()
+        )
+    )

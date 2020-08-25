@@ -1,2 +1,13 @@
-print(b)
 a="from mod1\n"
+if(eq(_FILE _MAIN)
+	let(
+   d=3
+	 print(a)
+   print("mod1 is main file\n")
+	)
+	 )
+
+;; Only one branch in "if" expressions will be evaluated,
+;; Since "let" can introduce new variable in if's branch,
+;; We must sweep the variable out to recover the context
+;; when a let finish in lexical scope analyze

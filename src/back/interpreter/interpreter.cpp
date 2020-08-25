@@ -112,6 +112,7 @@ void Interpreter::standardEnvironment(){
   PRIM("or", 1,Or);
 
   PRIM("begin",1,Begin);
+  PRIM("let",1,Begin);
   PRIM("if",2,If);
   PRIM("while",2,While);
   PRIM2("=>",1,Pipe,true);

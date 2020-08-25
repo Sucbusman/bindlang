@@ -8,7 +8,7 @@ void printIndent(int n){
 
 void VM::dumpRegs(){
   cout<<"  frame:"<<frames.size()
-      <<" sp:0x"<<hex<<sp<<" bp:0x"<<hex<<bp<<" val_reg:";
+      <<" sp:0x"<<hex<<sp<<" bp:0x"<<hex<<bp;
   cout<<endl;
 }
 
@@ -16,6 +16,7 @@ void VM::dumpStack(){
   //sp point to next slot to place coming value
   //so, sp-1 is the available value at stack top
   for(int it=values.size()-1;it>=0;it--){
+    cout<<dec<<setw(3)<<it<<' ';
     if(it==bp and it==sp-1){
       printIndent(3);
       cout<<"=";

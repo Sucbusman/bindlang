@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
@@ -5,6 +6,8 @@
 #include "define/type.h"
 #include "util/utils.h"
 namespace bindlang{
+#define backup(V)  auto V##_backup = V 
+#define recover(V) do{V = V##_backup;}while(0)
 
 template <typename... Arg>
 
@@ -23,6 +26,23 @@ uint16_t Compiler::Local::set(string const& name){
 
 uint16_t Compiler::Local::get(string const& name){
   return map[name];
+}
+
+uint32_t Compiler::Local::tellp(){
+  return counter;
+}
+
+void Compiler::Local::sweep(uint32_t delim){
+  auto dits = vector<decltype(map.begin())>();
+  for(auto it=map.begin();it!=map.end();++it){
+    if(it->second >= delim){
+      dits.push_back(it);
+    }
+  }
+  for(auto & it :dits){
+    map.erase(it);
+  }
+  counter = delim;//recover counter before virtual scope
 }
 
 bool Compiler::Local::has(string const& name){
@@ -51,6 +71,7 @@ void Compiler::Closure::clear(){
   map.clear();
   values.clear();
 }
+
 #define mkval(EXP) (vm::Value(vm::make_obj(EXP)))
 void Compiler::compileFile2mem(string const& filename){
   string fn;
@@ -288,7 +309,7 @@ void Compiler::compileFunc(ExprPtr expr){
   if(define_funcp) name = last_name;
   resolve(func->body->clone());
   locals = locals_backup;//restore locals
-  emitFunc("anony",(uint8_t)params.size(),0,
+  emitFunc(name,(uint8_t)params.size(),0,
            [this,func](){
              compile(move(func->body));
            });
@@ -313,8 +334,8 @@ void Compiler::resolveCall(ExprPtr expr){
 }
 
 void Compiler::compileCall(ExprPtr expr){
-  auto return_valuep = not rootp;
-  if(rootp){rootp = false;}
+  backup(rootp);
+  rootp = false;
   auto call = rcast(ExprCall*,expr);
   auto args = move(call->args);
   if (call->callee->type == ID){
@@ -322,7 +343,12 @@ void Compiler::compileCall(ExprPtr expr){
     auto name = rcast(ExprId*,call->callee->clone())->id.literal;
     auto it = keywords.find(name);
     if(it != keywords.end()){
-      return it->second(move(args));
+      it->second(move(args));
+      recover(rootp);
+      if(rootp){
+        coder.POP();
+      }
+      return;
     }
   }
   for(auto & arg:args){
@@ -330,7 +356,8 @@ void Compiler::compileCall(ExprPtr expr){
   }
   compile(move(call->callee));
   coder.CALL();
-  if(not return_valuep){
+  recover(rootp);
+  if(rootp){
     coder.POP();
   }
 }
@@ -389,10 +416,20 @@ void Compiler::standardEnvironment(){
   pushTopFunc("tl",1,0,[this](){coder.TAIL();});
   pushTopFunc("empty?",1,0,[this](){coder.EMPTYP();});
   pushTopFunc("not",1,0,[this](){coder.NOT();});
+  pushTopFunc("len",1,0,[this](){coder.LEN();});
+
   keywords["print"] = [this](ExprPtrList args){
-    for(auto & arg:args){
-      compile(move(arg));
+    if(args.size()<1){
+      error("print expect at least one expression.");
+    }else{
+      compile(move(args[0]));
       coder.SYSCALL(0);
+      auto it = args.begin();++it;
+      for(;it!=args.end();++it){
+        coder.POP();
+        compile(move(*it));
+        coder.SYSCALL(0);
+      }
     }
   };
   keywords["if"] = [this](ExprPtrList args){
@@ -400,6 +437,8 @@ void Compiler::standardEnvironment(){
       error("Wrong argument number ",args.size(),
             ", expect 2 or 3 args.");
     else{
+      backup(rootp);
+      rootp = false;
       compile(move(args[0]));
       auto test_end = coder.tellp();
       coder.JNE(PLACE_HOLDER);
@@ -416,15 +455,47 @@ void Compiler::standardEnvironment(){
       }
       auto else_end = coder.tellp();
       coder.modify16(then_end+1,else_end-then_end);
+      recover(rootp);
     }
   };
-
+  keywords["let"] = [this](ExprPtrList args){
+    int arity = args.size();
+    if(arity<2)
+      error("let expect at least twe arguments.");
+    else if(args[arity-1]->type == DEFINE){
+      error("define is not allowerd at the end of let.");
+    }else{
+      backup(rootp);
+      uint32_t pos = curScope().tellp();
+      int i=0;
+      // def, cache all the names in let expression's def part
+      for(;args[i]->type==DEFINE;i++){
+        compile(move(args[i]));
+      }
+      // use
+      coder.VCALL();
+      rootp = true;
+      for(;i<arity-1;i++){
+        compile(move(args[i]));
+      }
+      rootp = false;
+      compile(move(args[i]));
+      coder.VRET();
+      //clear all definitions in let
+      curScope().sweep(pos);
+      recover(rootp);
+    }
+  };
   keywords["begin"] = [this](ExprPtrList args){
+    auto rootp_backup = rootp;
     auto it=args.begin();
     for(;it!=--args.end();++it){
+      rootp = true;
       compile(move(*it));
     }
+    rootp = false;
     compile(move(*it));
+    rootp = rootp_backup;
   };
 
   keywords["and"] = [this](ExprPtrList args){
@@ -468,25 +539,6 @@ void Compiler::standardEnvironment(){
       coder.modify16(all_eval+1,coder.tellp()-all_eval);
     }
   };
-
-  // keywords["while"] = [this](ExprPtrList args){
-  //   if(args.size()<1)
-  //     error("while expect more than one argument.");
-  //   else{
-  //     auto test_start = coder.tellp();
-  //     compile(move(args[0]));
-  //     auto body_start = coder.tellp();
-  //     coder.JNE(0);
-  //     auto it=args.begin();
-  //     for(++it;it!=args.end();++it){
-  //       compile(move(*it));
-  //     }
-  //     coder.JMP(test_start-coder.tellp());
-  //     auto body_end = coder.tellp();
-  //     coder.modify16(body_start+1,body_end-body_start);
-  //   }
-  // };
-
   keywords["+"] = [this](ExprPtrList args){
     if(args.size()<2)
       error("plus expect twe more arguments.");
@@ -547,6 +599,8 @@ void Compiler::standardEnvironment(){
         switch(tok.type){
           case tok_str:{
             compileFile2mem(tok.literal);
+            //load do not pop,so here push to against it
+            coder.PUSH();
             break;
           }
           default:{

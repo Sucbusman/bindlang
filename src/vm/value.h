@@ -12,12 +12,14 @@
   f(GETL) f(SETC) f(GETC) f(SETL)                       \
   f(CNST) f(CNSH) f(IMM)                                \
   f(PUSH) f(POP)                                        \
-  f(CAPTURE) f(CALL) f(TCALL) f(MCALL) f(RET) f(MRET)   \
+  f(CAPTURE) f(CALL) f(VCALL)                           \
+  f(TCALL)f(MCALL)   f(RET)  f(VRET) f(MRET)            \
   f(JMP)  f(JNE)     f(JEQ)                             \
   f(ADD)  f(MINUS)   f(MULT) f(DIVIDE)                  \
   f(EQ)   f(GT)      f(LT)                              \
   f(TRUE) f(FALSE)   f(NOT)                             \
   f(UNIT) f(RCONS) f(CONS) f(HEAD) f(TAIL) f(EMPTYP)    \
+  f(LEN)                                                \
   f(HALT) f(SYSCALL) f(COPY)
   
 #define VM_EXPAND_LIST(i) i,

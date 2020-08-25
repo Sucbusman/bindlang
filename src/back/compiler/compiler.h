@@ -20,7 +20,9 @@ class Compiler{
     uint32_t counter=0;
     unordered_map<string,uint32_t> map;
     uint16_t set(string const&);
+    uint32_t tellp();
     uint16_t get(string const&);
+    void sweep(uint32_t delim);
     bool has(string const&);
   };
 
@@ -75,6 +77,7 @@ class Compiler{
   bool rootp = true;
   //for give function a name
   bool define_funcp = false;
+  
   string last_name;
 
   Local toplevel;

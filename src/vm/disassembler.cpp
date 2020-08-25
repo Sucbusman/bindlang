@@ -89,12 +89,15 @@ uint8_t* VM::disas_inst(uint8_t* pc){
     WHEN(HEAD):
     WHEN(TAIL):
     WHEN(EMPTYP):
+    WHEN(LEN):
     WHEN(NOP):
     WHEN(PUSH):
     WHEN(POP):
     WHEN(CALL):
+    WHEN(VCALL):
     WHEN(TCALL):
     WHEN(HALT):
+    WHEN(VRET):
     WHEN(RET):
       cout<<endl;
       break;

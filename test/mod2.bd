@@ -1,3 +1,5 @@
-b = "from mod2\n"
 load("mod1.bd")
+c = 3
 print(a)
+print("mod2 is main file\n")
+print(c)

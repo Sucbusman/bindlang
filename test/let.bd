@@ -1,0 +1,6 @@
+a=1
+let(b=2
+		let(c=3
+		print(+(b c) "\n"))
+    print(+(a b) "\n"))
+print(a)

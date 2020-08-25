@@ -51,6 +51,10 @@ class VM{
   vector<callFrame> frames;// last call frames
   uint32_t entry=0;// determin constant region
 
+  // now only for "let"
+  vector<size_t> vframes;
+
+
   // register
   uint8_t* ip;
   size_t   bp = 0;

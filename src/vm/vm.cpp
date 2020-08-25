@@ -1,6 +1,7 @@
 #include "vm/value.h"
 #include "vm/vm.h"
 #include "vm/coder.h"
+#include <bits/stdint-uintn.h>
 #include <cstdio>
 
 namespace bindlang { namespace vm{
@@ -12,6 +13,8 @@ using std::endl;
 template <typename... Args>
 inline bool VM::error(Args...args){
   (cerr<< ... <<args)<<endl;
+  dumpRegs();
+  dumpStack();
   exit(1);
 }
 
@@ -231,6 +234,12 @@ bool VM::run(){
         }
         break;
       }
+      WHEN(LEN):{
+        EXPECT(VAL_String);
+        auto s = AS_CSTRING(values[sp-1]);
+        values[sp-1] = Value(s->size());
+        break;
+      }
       WHEN(PUSH):
         push(values[sp-1]);
         break;
@@ -249,6 +258,10 @@ bool VM::run(){
         vsp = &func->captureds;
         bp = sp-func->arity;
         ip = rom.data()+func->offset;//jump
+        break;
+      }
+      WHEN(VCALL):{
+        vframes.push_back(sp-1);//why? sp-1
         break;
       }
       WHEN(MCALL):{
@@ -304,6 +317,13 @@ bool VM::run(){
         frames.pop_back();
         break;
       }
+      WHEN(VRET):{
+        auto oldsp = vframes.back();
+        vframes.pop_back();
+        values[oldsp] = values[sp-1];//only return one value
+        sp = oldsp+1;//point to next slot
+        break;
+      }
       WHEN(MRET):{
         (cur_proc->cache)[cur_callid] =
           CachePair(values[sp-1],cur_args);//add ans to cache
@@ -356,29 +376,3 @@ bool VM::run(){
 }
 
 } }
-
-/* compueted goto version,not easy to extend,
-   optimize vm with it last.
-#define NEXT() do{opc=EAT(uint8_t);goto *inst_labels[opc]}while(0)
-  VM_LABEL(SETC){
-    
-  }
-  VM_LABEL(GETC){
-    
-  }
-  VM_LABEL(SETL){
-    
-  }
-  VM_LABEL(GETL){
-    
-  }
-  VM_LABEL(CNST){
-    
-  }
-  VM_LABEL(CNSH){
-    
-  }
-  VM_LABEL(IMM){
-    
-  }
-*/
