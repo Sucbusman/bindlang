@@ -78,6 +78,9 @@ ExprPtr Parser::parseExpr(){
     case '\'':    protect = true;return parseExpr();
     case '\\':    return parseFunc();
     case tok_str:
+    case tok_num_bin:
+    case tok_num_oct:
+    case tok_num_hex:
     case tok_num: return parseAtom();
     case '<':     return parseTuple();
     case '[':     return parseList();
@@ -156,6 +159,9 @@ ExprPtr Parser::parseAtom(){
   ExprPtr atom;
   switch(token_.type){
     case tok_str:
+    case tok_num_bin:
+    case tok_num_oct:
+    case tok_num_hex:
     case tok_num:
        atom =  make_unique<ExprAtom>(token_);
        break;

@@ -15,7 +15,8 @@
   f(CAPTURE) f(CALL) f(VCALL)                           \
   f(TCALL)f(MCALL)   f(RET)  f(VRET) f(MRET)            \
   f(JMP)  f(JNE)     f(JEQ)                             \
-  f(ADD)  f(MINUS)   f(MULT) f(DIVIDE)                  \
+  f(ADD)  f(MINUS)   f(MULT)  f(DIVIDE)                 \
+  f(ADDN) f(MINUSN)  f(MULTN) f(DIVIDEN)                \
   f(EQ)   f(GT)      f(LT)                              \
   f(TRUE) f(FALSE)   f(NOT)                             \
   f(UNIT) f(RCONS) f(CONS) f(HEAD) f(TAIL) f(EMPTYP)    \
@@ -127,7 +128,12 @@ struct ObjProcedure:Obj{
   //            number,     result, args
   CallCache cache;
   uint8_t property;//....|side-effect
-#define hasSideEffect(f) ((f->property & 1)==1)
+  bool hasSideEffect(){
+    return (property==1); 
+  }
+  bool multiArgsp(){
+    return ((property>>1)==1); 
+  }
   size_t hash_call(vector<Value> const& args){
     #define hash_mult 0x1234
     size_t n=0;

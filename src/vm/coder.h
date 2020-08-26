@@ -55,6 +55,10 @@ class Coder{
   void MINUS();
   void MULT();
   void DIVIDE();
+  void ADDN();
+  void MINUSN();
+  void MULTN();
+  void DIVIDEN();
   void GT();
   void LT();
   void EQ();

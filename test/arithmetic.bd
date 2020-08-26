@@ -1,0 +1,4 @@
+add=+
+print(add(2 3 4 5))
+minus=-
+print(minus(7 3))

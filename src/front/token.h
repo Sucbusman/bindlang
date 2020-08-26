@@ -11,11 +11,14 @@ typedef enum
   tok_eof     = -1,
   tok_id      = -2,
   tok_num     = -3,
-  tok_str     = -4,
-  tok_err     = -5,
-  tok_arrow   = -6,
-  tok_equal   = -7,
-  tok_newline = -8
+  tok_num_bin = -4,
+  tok_num_oct = -5,
+  tok_num_hex  = -6,
+  tok_str     = -7,
+  tok_err     = -8,
+  tok_arrow   = -9,
+  tok_equal   = -10,
+  tok_newline = -11
 } toktype;
 
 struct Token{

@@ -22,6 +22,7 @@ enum class SYSCALL_T:uint8_t{
 
 struct callFrame{
   // is used for recording the past calls information
+  // sp is recorded in another structure for efficient "let"
   callFrame(uint8_t* ip,size_t bp,vector<Value>* vsp)
     :ip(ip),bp(bp),vsp(vsp){}
   uint8_t* ip;

@@ -3,11 +3,11 @@
 snd = \t->t.tl.hd
 +1 = \x->+(x 1)
 *2 = \x->*(2 x)
-println = \x->begin(print(x) print("\n"))
+println = \x->let(print(x) print("\n"))
 
 ;; stream maker
 mk-stream=\f init
-->begin(h=\n
+->let(h=\n
         ->[n \->h(f(n))]
         \->h(init))
 

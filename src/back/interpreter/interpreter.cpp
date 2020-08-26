@@ -197,6 +197,12 @@ ValPtr Interpreter::evalAtom(ExprPtr expr){
   switch(tok.type){
     case tok_num:
       return make_shared<Value>(stod(tok.literal));
+    case tok_num_bin:
+      return make_shared<Value>((double)stoi(tok.literal,nullptr,2));
+    case tok_num_oct:
+      return make_shared<Value>((double)stoi(tok.literal,nullptr,8));
+    case tok_num_hex:
+      return make_shared<Value>((double)stoi(tok.literal,nullptr,16));
     case tok_str:
       return make_shared<Value>(make_obj(tok.literal));
   }

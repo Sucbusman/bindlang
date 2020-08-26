@@ -4,7 +4,7 @@ O_WRONLY = 1
 O_RDWR   = 2
 O_CREAT  = 64
 
-P_RWX = 493 ;00755
+P_RWX = 0o0755
 
 open=\fn
 ->sys/open(fn +(O_RDWR O_CREAT) P_RWX)

@@ -79,6 +79,10 @@ uint8_t* VM::disas_inst(uint8_t* pc){
     WHEN(MINUS):
     WHEN(MULT):
     WHEN(DIVIDE):
+    WHEN(ADDN):
+    WHEN(MINUSN):
+    WHEN(MULTN):
+    WHEN(DIVIDEN):
     WHEN(GT):
     WHEN(LT):
     WHEN(EQ):

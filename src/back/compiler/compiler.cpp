@@ -161,15 +161,19 @@ void Compiler::compileAtom(ExprPtr expr){
   auto atom = rcast(ExprAtom*,expr);
   auto tok = atom->literal;
   switch(tok.type){
-    case tok_num:{
-      auto n = atoi(tok.literal.c_str());
-      coder.IMM(n);
-      break;
-    }
+#define TOK_NUM(base)                                   \
+    uint64_t n = stoi(tok.literal.c_str(),nullptr,base); \
+    coder.IMM(n);                                       \
+    break;
+    case tok_num:    {TOK_NUM(10);}
+    case tok_num_bin:{TOK_NUM(2);}
+    case tok_num_oct:{TOK_NUM(8);}
+    case tok_num_hex:{TOK_NUM(16);}
     case tok_str:
       CNSTStr(tok.literal);
       break;
   }
+#undef TOK_NUM
 }
 
 void Compiler::resolveList(ExprPtr expr){
@@ -367,6 +371,7 @@ void Compiler::compileCall(ExprPtr expr){
       return;
     }
   }
+  coder.VCALL();//mark the start position of procudure arguments
   for(auto & arg:args){
     compile(move(arg));
   }
@@ -427,10 +432,10 @@ void Compiler::standardEnvironment(){
   pushSyscall(close,1,1);
   pushSyscall(read,2,1);
   pushSyscall(write,2,1);
-  pushTopFunc("+",2,0,[this](){coder.ADD();});
-  pushTopFunc("-",2,0,[this](){coder.MINUS();});
-  pushTopFunc("*",2,0,[this](){coder.MULT();});
-  pushTopFunc("/",2,0,[this](){coder.DIVIDE();});
+  pushTopFunc("+",2,2,[this](){coder.ADDN();});
+  pushTopFunc("-",2,2,[this](){coder.MINUSN();});
+  pushTopFunc("*",2,2,[this](){coder.MULTN();});
+  pushTopFunc("/",2,2,[this](){coder.DIVIDEN();});
   pushTopFunc("gt",2,0,[this](){coder.GT();});
   pushTopFunc("lt",2,0,[this](){coder.LT();});
   pushTopFunc("eq",2,0,[this](){coder.EQ();});
@@ -548,40 +553,32 @@ void Compiler::standardEnvironment(){
       coder.modify16(all_eval+1,coder.tellp()-all_eval);
     }
   };
-  keywords["+"] = [this](ExprPtrList args){
-    if(args.size()<2)
-      error("plus expect twe more arguments.");
-    else{
-#define REDUCE(OP)                              \
-      compile(move(args[0]));                   \
-      for(int i=1;i<args.size();i++){           \
-        compile(move(args[i]));                 \
-        coder.OP();                             \
-      }
-      REDUCE(ADD);
-    }
-  };
-  keywords["-"] = [this](ExprPtrList args){
-    if(args.size()<2)
-      error("minus expect twe more arguments.");
-    else{
-      REDUCE(MINUS);
-    }
-  };
-  keywords["*"] = [this](ExprPtrList args){
-    if(args.size()<2)
-      error("multiply expect twe more arguments.");
-    else{
-      REDUCE(MULT);
-    }
-  };
-  keywords["/"] = [this](ExprPtrList args){
-    if(args.size()<2)
-      error("divide expect twe more arguments.");
-    else{
-      REDUCE(DIVIDE);
-    }
-  };
+#define INLINE_MULTIPLE(OP)                         \
+  coder.VCALL();                                    \
+  for(auto & arg:args){                             \
+    compile(move(arg));                             \
+  }                                                 \
+  coder.OP();                                       \
+  coder.VRET();
+
+#define ARITHMETIC(OP)                              \
+    [this](ExprPtrList args){                       \
+      if(args.size()<2)                             \
+        error(#OP " expect twe more arguments.");   \
+      else if(args.size()==2){                      \
+        for(auto & arg:args){                       \
+          compile(move(arg));                       \
+        }                                           \
+        coder.OP();                                 \
+      }else{                                        \
+        INLINE_MULTIPLE(OP##N);                     \
+      }                                             \
+    };
+  keywords["+"] = ARITHMETIC(ADD);
+  keywords["-"] = ARITHMETIC(MINUS);
+  keywords["*"] = ARITHMETIC(MULT);
+  keywords["/"] = ARITHMETIC(DIVIDE);
+
   keywords["hd"]=[this](ExprPtrList args){
     if(args.size()!=1){
       error("hd expect one argument.");

@@ -169,12 +169,22 @@ bool VM::run(){
 #define wordp  ((uint32_t*)ip)
 #define dwordp ((uint64_t*)ip)
 #define WHEN(OP) case (uint8_t)OpCode::OP
-#define BINARY_OP(type,op,rst_type)            \
-  do{auto r = pop();auto l = values[sp-1];     \
-    rst_type ans = (l.as.type op r.as.type);   \
+#define BINARY_OP(type,op,rst_type)                 \
+  do{auto r = pop();auto l = values[sp-1];          \
+    rst_type ans = (l.as.type op r.as.type);        \
     values[sp-1]=Value(ans);}while(0)
-#define EXPECT(T)                              \
+#define FOLDL(type,op,rst_type)                     \
+  do{auto base=vframes.back();                      \
+    rst_type val = values[base].as.type;            \
+    for(auto i=base+1;i<sp;i++){                    \
+      val = (val op (values[i].as.type));           \
+    }                                               \
+    values[sp-1]= Value(val);}while(0)
+  
+#define EXPECT(T)                                   \
   if(values[sp-1].type != T){error("Expect " #T);break;}
+#define REQUIRE(EXPR)                               \
+  if(not (EXPR)){error("Require " #EXPR);break;}
   uint8_t  byte;
   uint16_t word;
   uint32_t dword;
@@ -259,15 +269,19 @@ bool VM::run(){
         push(Value(n));
         break;
       }
-      WHEN(ADD):    BINARY_OP(number,+,uint64_t);break;
-      WHEN(MINUS):  BINARY_OP(number,-,uint64_t);break;
-      WHEN(MULT):   BINARY_OP(number,*,uint64_t);break;
-      WHEN(DIVIDE): BINARY_OP(number,/,uint64_t);break;
-      WHEN(GT):     BINARY_OP(number,>,bool);break;
-      WHEN(LT):     BINARY_OP(number,<,bool);break;
-      WHEN(TRUE):   push(Value(true));break;
-      WHEN(FALSE):  push(Value(false));break;
-      WHEN(NOT):    push(Value(truthy(pop())?false:true));break;
+      WHEN(ADDN):    FOLDL(number,+,uint64_t);break;
+      WHEN(MINUSN):  FOLDL(number,-,uint64_t);break;
+      WHEN(MULTN):   FOLDL(number,*,uint64_t);break;
+      WHEN(DIVIDEN): FOLDL(number,/,uint64_t);break;
+      WHEN(ADD):     BINARY_OP(number,+,uint64_t);break;
+      WHEN(MINUS):   BINARY_OP(number,-,uint64_t);break;
+      WHEN(MULT):    BINARY_OP(number,*,uint64_t);break;
+      WHEN(DIVIDE):  BINARY_OP(number,/,uint64_t);break;
+      WHEN(GT):      BINARY_OP(number,>,bool);break;
+      WHEN(LT):      BINARY_OP(number,<,bool);break;
+      WHEN(TRUE):    push(Value(true));break;
+      WHEN(FALSE):   push(Value(false));break;
+      WHEN(NOT):     push(Value(truthy(pop())?false:true));break;
       WHEN(EQ):{
         auto r = pop();
         auto l = pop();
@@ -380,6 +394,14 @@ bool VM::run(){
       WHEN(POP):
         pop();
         break;
+      WHEN(VCALL):{
+        /* record sp before evaluate arguments
+           normal procedure call:VCALL,CALL,RET
+           inline procudure call:VCALL,VRET
+         */
+        vframes.push_back(sp);
+        break;
+      }
       WHEN(CALL):{
         /* caller prepare all the aruguments, 
            align in the stack in the order.
@@ -390,17 +412,20 @@ bool VM::run(){
         auto func = AS_PROCEDURE(pop());
         frames.push_back(callFrame(ip,bp,vsp));
         vsp = &func->captureds;
-        bp = sp-func->arity;
+        bp = vframes.back();
         ip = rom.data()+func->offset;//jump
-        break;
-      }
-      WHEN(VCALL):{
-        vframes.push_back(sp);
+#define CHECK_ARITY(ARITY)                       \
+        if(func->multiArgsp()){                  \
+          REQUIRE((ARITY)>=func->arity);         \
+        }else{                                   \
+          REQUIRE((ARITY)==func->arity);         \
+        }
+        CHECK_ARITY(sp-bp);
         break;
       }
       WHEN(MCALL):{
         auto func = AS_PROCEDURE(pop());
-        auto newbase = sp-func->arity;
+        auto newbase = vframes.back();vframes.pop_back();
         vector<Value> args;
         for(auto i=newbase;i<sp;i++){
           args.push_back(values[i]);
@@ -425,18 +450,21 @@ bool VM::run(){
         }
         frames.push_back(callFrame(ip,bp,vsp));
         vsp = &func->captureds;
-        bp = sp-func->arity;
+        bp = newbase;
         ip = rom.data()+func->offset;//jump
+        CHECK_ARITY(sp-bp);
         break;
       }
       WHEN(TCALL):{
         auto func = AS_PROCEDURE(pop());
-        auto base = sp-func->arity;
+        auto base = vframes.back();vframes.pop_back();
+        auto arity = sp-base;
+        CHECK_ARITY(arity);
         // move new arguments to old call frame
-        for(auto i=0;i<func->arity;i++){
+        for(auto i=0;i<arity;i++){
           values[bp+i] = values[base+i];
         }
-        sp = bp + func->arity;
+        sp = bp + arity;
         vsp = &func->captureds;
         ip = rom.data()+func->offset;//jump
         break;
@@ -448,14 +476,15 @@ bool VM::run(){
         bp = frames.back().bp;
         vsp = frames.back().vsp;
         ip = frames.back().ip;
+        vframes.pop_back();
         frames.pop_back();
         break;
       }
       WHEN(VRET):{
-        auto oldsp = vframes.back();
+        auto base = vframes.back();
         vframes.pop_back();
-        values[oldsp] = values[sp-1];//only return one value
-        sp = oldsp+1;//point to next slot
+        values[base] = values[sp-1];//only return one value
+        sp = base+1;//point to next slot
         break;
       }
       WHEN(MRET):{
@@ -502,6 +531,9 @@ bool VM::run(){
     }
   }
   return false;
+#undef FOLDL
+#undef CHECK_ARITY
+#undef REQUIRE
 #undef WHEN
 #undef BINARY_OP
 #undef PEEK

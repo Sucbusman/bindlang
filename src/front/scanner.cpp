@@ -133,6 +133,7 @@ bool Scanner::skipUntil(std::function<bool(char)> cond){
 }
 
 bool Scanner::skipUntilNext(std::function<bool(char)> cond){
+  // require future is empty now
   while(not in.eof()){
     char ch = borrow();
     if(cond(ch)){
@@ -215,12 +216,33 @@ Token Scanner::tokNewline(){
 */
 
 Token Scanner::tokNumber(){
-  auto notdigit = [](char ch)mutable{
-              return not isdigit(ch);
-             };
+  auto fnot = [](std::function<bool(char)> f){return [f](char ch){return not f(ch);};};
+  auto ishex = [](char ch){
+    return isdigit(ch) or ('a'<=ch and ch<='f');
+  };
+  auto isoct = [](char ch){return '0'<=ch and ch<='7';};
+  auto isbin = [](char ch){return ch=='0' or ch=='1';};
+  auto notdigit = fnot(isdigit);
   skipUntilNext(notdigit);
-  if(peekNext() == '.'){
-    char ch = borrow();
+  char ch = peekNext();
+  if(cache.size()==1 and cache[0] == '0'){
+    switch(ch){
+#define NUMTOK(F,T)                             \
+        nextChar();                             \
+        cache.clear();                          \
+        skipUntilNext(fnot(F));                 \
+        return makeToken(T);
+      case 'x': NUMTOK(ishex,tok_num_hex);
+      case 'o': NUMTOK(isoct,tok_num_oct);
+      case 'b': NUMTOK(isbin,tok_num_bin);
+      default:
+        //just 0
+        return makeToken(tok_num);
+    }
+  }
+  //else try float
+  if(ch == '.'){
+    ch = borrow();
     if(not isdigit(ch)){
       //eg. 3.double
       //    ^
