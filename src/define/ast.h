@@ -39,7 +39,7 @@ void deindent();
 struct Expr {
   int type=-2;
   bool protect = false;
-  ~Expr() = default;
+  virtual ~Expr() = default;
   virtual void    show() =0;
   virtual ExprPtr clone()=0;
   Expr(int type):type(type){};

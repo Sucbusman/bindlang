@@ -1,6 +1,15 @@
 a=1
-let(b=2
-		let(c=3
-		print(+(b c) "\n"))
-    print(+(a b) "\n"))
-print(a)
+let(b=3
+    c=4
+    d=5
+    print(+(a d) "\n"))
+e=2
+let(
+    f=33
+    n=44
+    print(f "\n")
+    print(n "\n")
+    g=55
+    print(g "\n")
+)
+print(e)

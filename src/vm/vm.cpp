@@ -395,7 +395,7 @@ bool VM::run(){
         break;
       }
       WHEN(VCALL):{
-        vframes.push_back(sp-1);//why? sp-1
+        vframes.push_back(sp);
         break;
       }
       WHEN(MCALL):{

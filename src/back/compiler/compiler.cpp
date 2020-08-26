@@ -260,7 +260,8 @@ void Compiler::resolveDefine(ExprPtr expr){
 }
 
 void Compiler::compileDefine(ExprPtr expr){
-  if(rootp){rootp = false;}
+  backup(rootp);
+  rootp = false;
   auto def = rcast(ExprDefine*,expr);
   auto name = def->id.literal;
   auto it = keywords.find(name);
@@ -277,6 +278,7 @@ void Compiler::compileDefine(ExprPtr expr){
     compile(move(def->expr));
     curScope().set(name);
   }
+  recover(rootp);
 }
 
 inline Compiler::Local& Compiler::curScope(){
@@ -370,10 +372,10 @@ void Compiler::compileCall(ExprPtr expr){
   }
   compile(move(call->callee));
   coder.CALL();
-  recover(rootp);
   if(rootp){
     coder.POP();
   }
+  recover(rootp);
 }
 
 #define PLACE_HOLDER 0
@@ -485,20 +487,13 @@ void Compiler::standardEnvironment(){
   };
   keywords["let"] = [this](ExprPtrList args){
     int arity = args.size();
-    if(arity<2)
-      error("let expect at least twe arguments.");
-    else if(args[arity-1]->type == DEFINE){
-      error("define is not allowerd at the end of let.");
-    }else{
+    if(arity<1)
+      error("let expect at one expression.");
+    else{
       backup(rootp);
       uint32_t pos = curScope().tellp();
-      int i=0;
-      // def, cache all the names in let expression's def part
-      for(;args[i]->type==DEFINE;i++){
-        compile(move(args[i]));
-      }
-      // use
       coder.VCALL();
+      int i=0;
       rootp = true;
       for(;i<arity-1;i++){
         compile(move(args[i]));
@@ -510,17 +505,6 @@ void Compiler::standardEnvironment(){
       curScope().sweep(pos);
       recover(rootp);
     }
-  };
-  keywords["begin"] = [this](ExprPtrList args){
-    auto rootp_backup = rootp;
-    auto it=args.begin();
-    for(;it!=--args.end();++it){
-      rootp = true;
-      compile(move(*it));
-    }
-    rootp = false;
-    compile(move(*it));
-    rootp = rootp_backup;
   };
 
   keywords["and"] = [this](ExprPtrList args){

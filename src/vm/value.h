@@ -111,6 +111,7 @@ struct Value{
         return (ans<<(63)|(size_t)as.obj);
     }
   }
+#undef OBJ2VAL
 };
 
 struct ObjProcedure:Obj{

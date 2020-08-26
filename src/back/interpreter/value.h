@@ -196,6 +196,7 @@ struct Value{
     double number;
     Obj    *obj;
   }as;
+#undef OBJ2VAL
 };
 
 void printVal(ValPtr);
