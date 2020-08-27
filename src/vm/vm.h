@@ -17,29 +17,34 @@ enum class SYSCALL_T:uint8_t{
   open,
   close,
   read,
-  write
+  write,
+  cmd
 };
 
 struct callFrame{
   // is used for recording the past calls information
   // sp is recorded in another structure for efficient "let"
-  callFrame(uint8_t* ip,size_t bp,vector<Value>* vsp)
-    :ip(ip),bp(bp),vsp(vsp){}
+  callFrame(uint8_t* ip,size_t bp,vector<Value>* vsp,string name)
+    :ip(ip),bp(bp),vsp(vsp),name(name){}
   uint8_t* ip;
   size_t   bp;
   vector<Value>* vsp;
+  string name;
 };
 
 class VM{
  public:
   VM(){}
   VM(vector<std::uint8_t> &&codes,
-     vector<Value> &&constants)
-    :rom(codes),constants(constants){
+     vector<Value> &&constants,
+     vector<pair<size_t,size_t>>&& lines)
+    :rom(codes),constants(constants),
+     lines(lines){
     reset();
   }
   void init(vector<std::uint8_t>&&codes,
-            vector<Value>&&constants);
+            vector<Value>&&constants,
+            vector<pair<size_t,size_t>>&& lines);
 
   void reset();
   bool run();
@@ -49,7 +54,8 @@ class VM{
   // vm
   vector<std::uint8_t> rom;
   vector<Value>        constants;
-  
+  vector<pair<size_t,size_t>>       lines;
+
   // value stack
   vector<Value>        values;
   inline void  push(Value const& val);
@@ -59,7 +65,6 @@ class VM{
 
   // now only for "let"
   vector<size_t> vframes;
-
 
   // register
   uint8_t* ip;
@@ -91,6 +96,9 @@ class VM{
   void dumpConstant();
   void dumpStack();
   void dumpRegs();
+  void traceFrames();
+  void showLine(size_t pc);
+  void dumpLines();
   
   // error
   int error_num=0;

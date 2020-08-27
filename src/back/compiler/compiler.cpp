@@ -137,6 +137,13 @@ void Compiler::compileFile(string const& fn){
   }
 }
 
+void Compiler::newlineThenAdd(Token tok){
+   if(tok.line>line_num){
+     coder.addLine(tok.line);
+     line_num = tok.line;//update
+  }
+}
+
 inline void nop(){}
 void Compiler::compile(ExprPtr expr){
   if(hasError()) return;
@@ -160,6 +167,7 @@ void Compiler::compile(ExprPtr expr){
 void Compiler::compileAtom(ExprPtr expr){
   auto atom = rcast(ExprAtom*,expr);
   auto tok = atom->literal;
+  newlineThenAdd(tok);
   switch(tok.type){
 #define TOK_NUM(base)                                   \
     uint64_t n = stoi(tok.literal.c_str(),nullptr,base); \
@@ -229,7 +237,9 @@ void Compiler::resolveId(ExprPtr expr){
 }
 
 void Compiler::compileId(ExprPtr expr){
-  auto name = rcast(ExprId*,expr)->id.literal;
+  auto tok = rcast(ExprId*,expr)->id;
+  newlineThenAdd(tok);
+  auto name = tok.literal;
   if(curScope().has(name)){
     // if in the scope
     auto idx = locals.back().get(name);
@@ -246,7 +256,8 @@ void Compiler::compileId(ExprPtr expr){
 
 void Compiler::resolveDefine(ExprPtr expr){
   auto def = rcast(ExprDefine*,expr);
-  auto name = def->id.literal;
+  auto tok = def->id;
+  auto name = tok.literal;
   //if define function,the body should know function name
   //TODO:else compile error
   auto it = keywords.find(name);
@@ -267,7 +278,9 @@ void Compiler::compileDefine(ExprPtr expr){
   backup(rootp);
   rootp = false;
   auto def = rcast(ExprDefine*,expr);
-  auto name = def->id.literal;
+  auto tok = def->id;
+  auto name = tok.literal;
+  newlineThenAdd(tok);
   auto it = keywords.find(name);
   if(it!=keywords.end()){
     error("can not define ",name," this name is keyword");
@@ -424,14 +437,15 @@ void Compiler::pushVar(Local & scope,string const& name,
 void Compiler::standardEnvironment(){
   // push predefine function
   // print
-#define pushSyscall(name,arity,side_effectp) \
-  pushTopFunc("sys/" #name,arity,side_effectp,      \
+#define pushSyscall(name,arity,property)                        \
+  pushTopFunc("sys/" #name,arity,property,                      \
        [this](){coder.SYSCALL((uint8_t)vm::SYSCALL_T::name);});
   pushSyscall(gc,0,1);
   pushSyscall(open,3,1);
   pushSyscall(close,1,1);
   pushSyscall(read,2,1);
   pushSyscall(write,2,1);
+  pushSyscall(cmd,1,1);
   pushTopFunc("+",2,2,[this](){coder.ADDN();});
   pushTopFunc("-",2,2,[this](){coder.MINUSN();});
   pushTopFunc("*",2,2,[this](){coder.MULTN();});
@@ -446,7 +460,7 @@ void Compiler::standardEnvironment(){
   pushTopFunc("not",1,0,[this](){coder.NOT();});
   pushTopFunc("len",1,0,[this](){coder.LEN();});
   pushTopFunc("take",3,0,[this](){coder.TAKE();});
-  pushTopFunc("++",2,0,[this](){coder.CONCAT();});
+  pushTopFunc("++",2,2,[this](){coder.CONCAT();});
   pushTopFunc("str>ints",1,0,[this](){coder.STR2INTS();});
   pushTopFunc("int>str",1,0,[this](){coder.INT2STR();});
   pushTopFunc("int>file",1,0,[this](){coder.INT2FILE();});

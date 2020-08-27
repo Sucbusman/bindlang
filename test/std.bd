@@ -1,4 +1,5 @@
-;;standard library
+;standard library
+;; aux
 +1 = \x->+(x 1)
 *2 = \x->*(2 x)
 -1 = \x->-(x 1)
@@ -8,6 +9,7 @@ fst = hd
 snd = \x->x.tl.hd
 thd = \x->x.tl.tl.hd
 
+;; high order function
 map = \f l
 ->if(empty?(l)
      []
@@ -43,17 +45,45 @@ times = \f -> \n
                  let(f(x) h(-(x 1))))
         h(n))
 
+;; IO
 newline = \->print("\n")
+O_RDONLY = 0
+O_WRONLY = 1
+O_RDWR   = 2
+O_CREAT  = 64
+
+P_RWX = 0o0755
+
+open=\fn
+->sys/open(fn +(O_RDWR O_CREAT) P_RWX)
+
+stdin = int>file(0)
+
+read =\n->\fd
+->sys/read(fd n)
+
+readln=\fd
+->let(h=\acc
+      ->let(byte= sys/read(fd 1)
+            if(eq(byte "\n")
+               acc
+               h(++(acc byte))))
+      h(""))
+
+write=\s->\fd
+->sys/write(fd s)
+
+close=\fd->sys/close(fd)
 
 ;test
- if(eq( _FILE _MAIN)
-    let(
-        lst = [1 2 3 4 5]
-        print(filter(\x->gt(x 3) map(+1 lst)) ) newline()
-        print("foldl list:" foldl(+ 0 lst) ) newline()
-        print("foldr list:" foldr(- lst 0) ) newline()
-        print("range(5):" range(5) ) newline()
-        6.times(\n->print(n))
-        newline()
-        )
-    )
+if(eq( _FILE _MAIN)
+   let(
+       lst = [1 2 3 4 5]
+       print(filter(\x->gt(x 3) map(+1 lst)) ) newline()
+       print("foldl list:" foldl(+ 0 lst) ) newline()
+       print("foldr list:" foldr(- lst 0) ) newline()
+       print("range(5):" range(5) ) newline()
+       6.times(\n->print(n))
+       newline()
+       )
+   )

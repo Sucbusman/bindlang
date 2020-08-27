@@ -11,6 +11,7 @@ class Coder{
  public:
   vector<uint8_t> codes;
   vector<Value>   constants;
+  vector<pair<size_t,size_t>>  lines;//for error messages
 
   template <typename T>
   void modify(size_t pc,T val);
@@ -32,7 +33,8 @@ class Coder{
   size_t tellp();
   size_t tellcp();
   size_t addConst(Value);
-
+  void   addLine(size_t line_num);
+  
   struct CapturedValue{
     uint8_t idx:6;
     //0:find in outer local env,1:find in outer captured values

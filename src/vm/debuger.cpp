@@ -12,6 +12,38 @@ void VM::dumpRegs(){
   cout<<endl;
 }
 
+void VM::traceFrames(){
+  for(auto &frame:frames){
+    cout<<"in procedure:"<<frame.name;
+    showLine((frame.ip-rom.data()));
+    cout<<endl;
+  }
+}
+
+void VM::showLine(size_t pc){
+  if(lines.size()>0){
+    if(pc<lines[0].second) cout<<" at prelude ";
+    else{
+      for(auto i=1;i<lines.size();i++){
+        auto p = lines[i];
+        if(pc<p.second){
+          cout<<" at line "<<dec<<p.first;
+          goto OUT;
+        }
+      }
+      cout<<" at line "<<dec<<(*lines.rbegin()).first;
+    OUT:{}
+    }
+  }
+}
+
+void VM::dumpLines(){
+  cout<<"lines:"<<endl;
+  for(auto &p:lines){
+    cout<<dec<<p.first<<' '<<p.second<<endl;
+  }
+}
+
 void VM::dumpStack(){
   //sp point to next slot to place coming value
   //so, sp-1 is the available value at stack top

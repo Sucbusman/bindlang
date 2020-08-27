@@ -28,8 +28,9 @@
 #define VM_EXPAND_LIST_STR(i) #i,
 #define VM_EXPAND_LABEL_LIST(i) &&VML_##i,
 #define VM_LABEL(i) VML_##i:
-#define VM_INSTALL_ALL_VAL(f)\
-  f(NIL) f(BOOL) f(NUMBER) f(FILE) f(String) f(Procedure) f(List)
+#define VM_INSTALL_ALL_VAL(f)                   \
+  f(NIL) f(BOOL) f(NUMBER) f(FILE) f(CHAR)      \
+  f(String) f(Procedure) f(List)
 #define VM_EXPAND_VAL(i) VAL_##i,
 #define VM_INSTALL_ALL_OBJ(f) \
   f(String) f(Procedure) f(List)
@@ -81,6 +82,7 @@ struct Value{
   uint8_t type;
   union{
     bool boolean;
+    char char_;
     int64_t number;
     uint16_t filedes;
     uint64_t address;
@@ -92,7 +94,7 @@ struct Value{
   Value(uint32_t number)
     :type(VAL_NUMBER){as.number = number;}
   Value(char ch)
-    :type(VAL_NUMBER){as.number = ch;}
+    :type(VAL_NUMBER){as.char_ = ch;}
   Value(uint64_t number)
     :type(VAL_NUMBER){as.number = number;}
   Value(uint16_t fd)

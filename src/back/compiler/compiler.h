@@ -68,6 +68,8 @@ class Compiler{
   void pushVar(Local&,string const&,
                          std::function<void(void)> f);
 
+  void newlineThenAdd(Token tok);
+
   // helper
   template <typename... Arg>
   void error(Arg... args);
@@ -93,6 +95,9 @@ class Compiler{
 
   //modules
   vector<string> files;
+
+  //line number
+  size_t line_num = 0;
 };
 
 }

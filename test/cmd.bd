@@ -1,0 +1,3 @@
+ans = sys/cmd("ls")
+print(ans)
+print(sys/cmd("echo 'haha'"))

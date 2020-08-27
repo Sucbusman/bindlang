@@ -14,15 +14,19 @@ using std::endl;
 
 template <typename... Args>
 inline bool VM::error(Args...args){
-  (cerr<< ... <<args)<<endl;
-  dumpRegs();
-  dumpStack();
+  cerr<<endl;
+  (cerr<< ... <<args);
+  showLine(ip-rom.data());
+  traceFrames();
   exit(1);
 }
 
 template <typename... Args>
 inline bool VM::warning(Args...args){
-  (cerr<< ... <<args)<<endl;
+  cerr<<endl;
+  (cerr<< ... <<args);
+  showLine(ip-rom.data());
+  traceFrames();
   return false;
 }
 
@@ -35,7 +39,7 @@ void VM::reset(){
   syscalls.clear();
   standardSyscalls();
   frames.clear();
-  frames.push_back(callFrame(0,0,nullptr));
+  frames.push_back(callFrame(0,0,nullptr,"toplevel"));
   bp  = 0;
   sp  = 0;
   vsp = nullptr;
@@ -43,14 +47,15 @@ void VM::reset(){
   bytesAllocated = 0;
 }
 
-void VM::init(vector<std::uint8_t> &&codes,
-              vector<Value> &&constants){
+void VM::init(vector<std::uint8_t>&& codes,
+              vector<Value>&& constants,
+              vector<pair<size_t,size_t>>&& lines){
   this->rom = codes;
   this->constants=constants;
+  this->lines = lines;
   values.clear();
   reset();
 }
-
 
 void VM::standardSyscalls(){
 #define EXPECT(T)                               \
@@ -143,6 +148,25 @@ void VM::standardSyscalls(){
       return true;
     }
   });
+  // 7 shell(STRING)
+  syscalls.push_back([this](){
+    EXPECT(String);
+    auto s = AS_CSTRING(values[sp-1]);
+    auto file = popen(s->c_str(),"r");
+    if(file==nullptr){
+      values[sp-1] = Value(false);
+      return false;
+    }
+    string ans;
+    while(true){
+      int ch=fgetc(file);
+      if(ch==EOF) break;
+      ans += (unsigned char)ch;
+    }
+    values[sp-1] = Value(make_obj(ans));
+    pclose(file);
+    return true;
+  });
 #undef EXPECT
 }
 
@@ -161,7 +185,6 @@ inline Value VM::pop(){
   return values[sp];
 }
 
-
 bool VM::run(){
 #define EAT(T) (*(T*)ip);ip+=sizeof(T)
 #define PEEK(T) (*(T*)ip)
@@ -169,22 +192,26 @@ bool VM::run(){
 #define wordp  ((uint32_t*)ip)
 #define dwordp ((uint64_t*)ip)
 #define WHEN(OP) case (uint8_t)OpCode::OP
-#define BINARY_OP(type,op,rst_type)                 \
+#define REQUIRE(EXPR)                               \
+  if(not (EXPR)){error("Require " #EXPR);break;}
+#define BINARY_OP(vtype,otype,op,rst_type)          \
   do{auto r = pop();auto l = values[sp-1];          \
-    rst_type ans = (l.as.type op r.as.type);        \
+    REQUIRE(l.type==VAL_##vtype);                   \
+    REQUIRE(l.type==r.type);                        \
+    rst_type ans = (l.as.otype op r.as.otype);      \
     values[sp-1]=Value(ans);}while(0)
-#define FOLDL(type,op,rst_type)                     \
+#define FOLDL(vtype,otype,op,rst_type)              \
   do{auto base=vframes.back();                      \
-    rst_type val = values[base].as.type;            \
+    REQUIRE(values[base].type==VAL_##vtype);        \
+    rst_type val = values[base].as.otype;           \
     for(auto i=base+1;i<sp;i++){                    \
-      val = (val op (values[i].as.type));           \
+      REQUIRE(values[i].type==VAL_##vtype);         \
+      val = (val op (values[i].as.otype));          \
     }                                               \
     values[sp-1]= Value(val);}while(0)
   
 #define EXPECT(T)                                   \
   if(values[sp-1].type != T){error("Expect " #T);break;}
-#define REQUIRE(EXPR)                               \
-  if(not (EXPR)){error("Require " #EXPR);break;}
   uint8_t  byte;
   uint16_t word;
   uint32_t dword;
@@ -269,16 +296,16 @@ bool VM::run(){
         push(Value(n));
         break;
       }
-      WHEN(ADDN):    FOLDL(number,+,uint64_t);break;
-      WHEN(MINUSN):  FOLDL(number,-,uint64_t);break;
-      WHEN(MULTN):   FOLDL(number,*,uint64_t);break;
-      WHEN(DIVIDEN): FOLDL(number,/,uint64_t);break;
-      WHEN(ADD):     BINARY_OP(number,+,uint64_t);break;
-      WHEN(MINUS):   BINARY_OP(number,-,uint64_t);break;
-      WHEN(MULT):    BINARY_OP(number,*,uint64_t);break;
-      WHEN(DIVIDE):  BINARY_OP(number,/,uint64_t);break;
-      WHEN(GT):      BINARY_OP(number,>,bool);break;
-      WHEN(LT):      BINARY_OP(number,<,bool);break;
+      WHEN(ADDN):    FOLDL(NUMBER,number,+,uint64_t);break;
+      WHEN(MINUSN):  FOLDL(NUMBER,number,-,uint64_t);break;
+      WHEN(MULTN):   FOLDL(NUMBER,number,*,uint64_t);break;
+      WHEN(DIVIDEN): FOLDL(NUMBER,number,/,uint64_t);break;
+      WHEN(ADD):     BINARY_OP(NUMBER,number,+,uint64_t);break;
+      WHEN(MINUS):   BINARY_OP(NUMBER,number,-,uint64_t);break;
+      WHEN(MULT):    BINARY_OP(NUMBER,number,*,uint64_t);break;
+      WHEN(DIVIDE):  BINARY_OP(NUMBER,number,/,uint64_t);break;
+      WHEN(GT):      BINARY_OP(NUMBER,number,>,bool);break;
+      WHEN(LT):      BINARY_OP(NUMBER,number,<,bool);break;
       WHEN(TRUE):    push(Value(true));break;
       WHEN(FALSE):   push(Value(false));break;
       WHEN(NOT):     push(Value(truthy(pop())?false:true));break;
@@ -354,12 +381,14 @@ bool VM::run(){
         break;
       }
       WHEN(CONCAT):{
-        EXPECT(VAL_String);
-        auto r = AS_CSTRING(pop());
-        EXPECT(VAL_String);
-        auto l = AS_CSTRING(values[sp-1]);
-        auto a = *l+*r;
-        values[sp-1] = Value(make_obj(a));
+        auto base=vframes.back();
+        REQUIRE(values[base].type==VAL_String);
+        string val = *AS_CSTRING(values[base]);
+        for(auto i=base+1;i<sp;i++){
+          REQUIRE(values[i].type==VAL_String);
+          val = val+*AS_CSTRING(values[i]);
+        }
+        values[sp-1] = Value(make_obj(val));
         break;
       }
       WHEN(STR2INTS):{
@@ -410,7 +439,7 @@ bool VM::run(){
            bettween this switch
         */
         auto func = AS_PROCEDURE(pop());
-        frames.push_back(callFrame(ip,bp,vsp));
+        frames.push_back(callFrame(ip,bp,vsp,func->name));
         vsp = &func->captureds;
         bp = vframes.back();
         ip = rom.data()+func->offset;//jump
@@ -448,7 +477,7 @@ bool VM::run(){
           cur_args = args;
           cur_callid = id;
         }
-        frames.push_back(callFrame(ip,bp,vsp));
+        frames.push_back(callFrame(ip,bp,vsp,func->name));
         vsp = &func->captureds;
         bp = newbase;
         ip = rom.data()+func->offset;//jump

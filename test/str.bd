@@ -1,7 +1,7 @@
 ;;test string operations
 load("std.bd")
 a="hello"
-print(++(a " world") "\n")
+print(++(a " world" "!") "\n")
 l = str>ints(a)
 print(l "\n")
 print("a[2-4]:" take(a 1 2) "\n")

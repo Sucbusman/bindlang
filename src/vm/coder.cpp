@@ -174,6 +174,10 @@ size_t Coder::addConst(Value v){
   return idx;
 }
 
+void Coder::addLine(size_t line_num){
+  lines.push_back(pair(line_num,tellp()));
+}
+
 // bytecodes
 template <typename T>
 void Coder::modify(size_t pc,T bs){

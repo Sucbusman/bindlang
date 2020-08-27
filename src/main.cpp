@@ -122,7 +122,8 @@ void compileAndRun(string const& fn,bool debugp){
   compiler.compileFile2mem(fn);
   if(not compiler.hasError()){
     auto vm = vm::VM(move(compiler.coder.codes),
-                   move(compiler.coder.constants));
+                     move(compiler.coder.constants),
+                     move(compiler.coder.lines));
     vm.debugp = debugp;
     vm.run();
   }
@@ -150,14 +151,16 @@ void as(const char* path){
 void disas(const char* path){
   auto coder = vm::Coder();
   coder.readBinary(path);
-  auto vm = vm::VM(move(coder.codes),move(coder.constants));
+  auto vm = vm::VM(move(coder.codes),move(coder.constants),
+                   move(coder.lines));
   vm.disassemble();
 }
 
 void runBytecode(const char* path,bool debugp){
   auto coder = vm::Coder();
   coder.readBinary(path);
-  auto vm = vm::VM(move(coder.codes),move(coder.constants));
+  auto vm = vm::VM(move(coder.codes),move(coder.constants),
+                   move(coder.lines));
   vm.debugp = debugp;
   vm.run();
 }
@@ -165,7 +168,8 @@ void runBytecode(const char* path,bool debugp){
 int main(int argc,char *argv[]){
   auto showhelp = [argv](){
     cout<<"Usage:"<<argv[0]<<
-      " [<interp|compile|scan|as|disas|run|debug> <file>]"<<endl
+      " [<tok|interp|compile|scan|as|disas|run|debug> <file>]"
+        <<endl
         <<"default:zero arg:repl"
         <<"one arg:compile"<<endl;
   };
@@ -183,6 +187,11 @@ int main(int argc,char *argv[]){
 #define when(S) if(action == (S))
     when("run"){
       runBytecode(argv[2],false);
+    }else when("tok"){
+      fstream fs(argv[2]);
+      auto scn = Scanner(fs);
+      scn.reset();
+      testScanner(scn);
     }else when("as"){
       as(argv[2]);
     }else when("disas"){

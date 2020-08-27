@@ -147,10 +147,10 @@ bool Scanner::skipUntilNext(std::function<bool(char)> cond){
 void Scanner::skipWhitespace(){
   while(not atEnd()){
     switch(char_){
-    case ' ' :
-    case '\r':
     case '\n':
       line_num++;
+    case ' ' :
+    case '\r':
     case '\t':// fall down
       cache.clear();
       nextChar();
